@@ -1,6 +1,7 @@
 {
   "name": "southeast-asian-student-service-platform",
   "version": "1.0.0",
+  "license": "GPL-2.0-only",
   "description": "Information management and service platform for Southeast Asian international students.",
   "main": "src/server.js",
   "scripts": {

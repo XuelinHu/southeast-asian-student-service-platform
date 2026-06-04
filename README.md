@@ -90,3 +90,7 @@ student001
 - `PATCH /api/grades/:id/audit` 管理员审核成绩
 - `GET /api/management/dashboard` 统计分析
 - `GET /api/management/risks` 风险查询，聚合签证临期、成绩适配异常、低分风险、学习预警和住宿异常
+
+## 开源协议
+
+本项目使用 GNU General Public License v2.0（GPL-2.0）开源，详见 `LICENSE`。
