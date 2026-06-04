@@ -1,0 +1,1 @@
+该图为 ER 模型图，用于说明系统数据库核心实体和实体间关系。图中 users 与 students、teachers 建立账号绑定关系，nationalities、classes、teachers 支撑学生档案和班级归属，dormitories、visas、study_records 支撑住宿、签证和学习风险查询，external_schools、grade_rules、grade_records 支撑多学校、多国家成绩适配与审核归档。该图用于数据设计章节，能够证明数据库表结构与学生档案、教师管理、风险查询和成绩适配业务之间存在真实业务关联。

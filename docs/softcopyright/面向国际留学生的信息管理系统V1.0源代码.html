@@ -1,0 +1,2202 @@
+<!doctype html><html><head><meta charset='utf-8'><title>面向国际留学生的信息管理系统V1.0源代码</title><style>
+@page { size: A4; margin: 13mm 11mm 13mm 11mm; @top-center { content: '面向国际留学生的信息管理系统 V1.0'; } @bottom-center { content: counter(page); } }
+body { font-family: 'Noto Sans CJK SC', 'Microsoft YaHei', Arial, sans-serif; color: #111827; line-height: 1.48; font-size: 11.2px; }
+h1 { text-align: center; font-size: 20px; margin: 0 0 12px; }
+h2 { font-size: 15px; margin: 14px 0 8px; border-bottom: 1px solid #888; padding-bottom: 3px; }
+h3 { font-size: 12px; margin: 10px 0 6px; }
+p { margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; margin: 7px 0 10px; }
+th, td { border-top: 1px solid #333; border-bottom: 1px solid #aaa; padding: 4px 6px; text-align: left; vertical-align: top; }
+pre { white-space: pre-wrap; word-break: break-all; margin: 6px 0 10px; padding: 7px 8px; background: #fff; border: 1px solid #cfd4dc; break-inside: auto; }
+code { font-family: 'DejaVu Sans Mono', 'Consolas', monospace; font-size: 10.4px; line-height: 1.38; }
+pre code { display: block; }
+</style></head><body><h1>面向国际留学生的信息管理系统V1.0源代码</h1>
+<h2>1 源代码属性结构说明</h2>
+<h3>1.1 项目技术栈</h3>
+<p>本软件采用 H5、Node.js、Express 和 MySQL 技术栈实现。前端由 HTML、CSS 和 JavaScript 组成，提供学生端双语 H5 页面以及教师端、管理端的横向管理界面。后端由 Node.js 和 Express 提供 REST API，包含登录认证、学生档案、教师管理、成绩适配、统计分析和风险查询等接口。数据库使用 MySQL，保存用户、学生、教师、班级、国籍、住宿、签证、学习记录、外部学校、成绩规则和成绩记录等业务数据。</p>
+<h3>1.2 源码根目录</h3>
+<p>源码根目录为当前项目目录。源码稿只选入与本系统运行直接相关的自研业务源码、完整后台代码、前端页面源码、数据库脚本、业务种子脚本和必要配置文件，不选入第三方依赖、锁文件、截图、PDF、缓存文件、说明书、Markdown 文档正文或软著材料生成脚本。</p>
+<h3>1.3 一级目录划分</h3>
+<ul>
+<li><code>src</code>：Node.js 后端源码，包含服务入口、路由、中间件、数据库连接和成绩适配服务。</li>
+<li><code>public</code>：H5 前台和管理端静态资源，包含页面结构、样式和交互逻辑。</li>
+<li><code>database</code>：MySQL 建库建表和基础数据脚本。</li>
+<li><code>scripts</code>：软著材料生成脚本，不属于系统运行源码，本源码稿不纳入。</li>
+<li><code>docs</code>：软著材料输出目录，不纳入源码正文。</li>
+</ul>
+<h3>1.4 二级与三级目录划分</h3>
+<pre><code class="language-text">.
+├── database
+│   └── schema.sql
+├── public
+│   ├── app.js
+│   ├── favicon.svg
+│   ├── index.html
+│   └── styles.css
+├── src
+│   ├── config
+│   │   └── db.js
+│   ├── middleware
+│   │   └── auth.js
+│   ├── routes
+│   │   ├── auth.js
+│   │   ├── grades.js
+│   │   ├── management.js
+│   │   ├── students.js
+│   │   └── teachers.js
+│   ├── services
+│   │   └── gradeAdapter.js
+│   ├── initDb.js
+│   ├── seedBusinessData.js
+│   └── server.js
+├── package.json
+└── .env.example
+</code></pre>
+<h3>1.5 主要模块归属关系</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>文件范围</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户认证</td>
+<td><code>src/routes/auth.js</code>、<code>src/middleware/auth.js</code></td>
+<td>登录、令牌签发、角色鉴权</td>
+</tr>
+<tr>
+<td>学生档案</td>
+<td><code>src/routes/students.js</code>、<code>public/app.js</code></td>
+<td>本人档案、学生列表和学生端展示</td>
+</tr>
+<tr>
+<td>教师管理</td>
+<td><code>src/routes/teachers.js</code>、<code>public/app.js</code></td>
+<td>教师列表、教师班级和教师端入口</td>
+</tr>
+<tr>
+<td>成绩适配</td>
+<td><code>src/routes/grades.js</code>、<code>src/services/gradeAdapter.js</code></td>
+<td>多学校、多国家成绩换算、审核和异常记录</td>
+</tr>
+<tr>
+<td>风险查询</td>
+<td><code>src/routes/management.js</code></td>
+<td>签证、成绩、学习、住宿风险聚合</td>
+</tr>
+<tr>
+<td>数据层</td>
+<td><code>src/config/db.js</code>、<code>database/schema.sql</code>、<code>src/initDb.js</code>、<code>src/seedBusinessData.js</code></td>
+<td>MySQL 连接、表结构、初始化和业务关联数据</td>
+</tr>
+<tr>
+<td>前端界面</td>
+<td><code>public/index.html</code>、<code>public/styles.css</code>、<code>public/app.js</code></td>
+<td>H5 双语界面和管理端页面</td>
+</tr>
+</tbody>
+</table>
+<h3>1.6 选入源码稿范围说明</h3>
+<p>本源码稿按真实文件逐一输出，所有选入文件均来自当前软件工程并与系统运行直接相关。后台代码已完整纳入，包括服务入口、数据库连接、认证中间件、认证路由、学生路由、教师路由、成绩路由、统计与风险路由、成绩适配服务、数据库初始化脚本和业务数据种子脚本。配置文件和初始化脚本中涉及数据库密码、令牌密钥、演示密码、哈希、手机号、邮箱和外部地址的内容已脱敏，脱敏不改变文件结构和业务逻辑表达。</p>
+<h2>2 源码正文</h2>
+<h3>2.1 文件：<code>package.json</code></h3>
+<p>文件职责：项目依赖、启动命令和数据库脚本命令配置。</p>
+<p>所属模块：项目配置。</p>
+<pre><code class="language-json">0001  {
+0002    &quot;name&quot;: &quot;international-student-information-platform&quot;,
+0003    &quot;version&quot;: &quot;1.0.0&quot;,
+0004    &quot;description&quot;: &quot;Information management and service platform for Southeast Asian international students.&quot;,
+0005    &quot;main&quot;: &quot;src/server.js&quot;,
+0006    &quot;scripts&quot;: {
+0007      &quot;start&quot;: &quot;node src/server.js&quot;,
+0008      &quot;dev&quot;: &quot;nodemon src/server.js&quot;,
+0009      &quot;db:init&quot;: &quot;node src/initDb.js&quot;,
+0010      &quot;db:seed&quot;: &quot;node src/seedBusinessData.js&quot;
+0011    },
+0012    &quot;dependencies&quot;: {
+0013      &quot;bcryptjs&quot;: &quot;^2.4.3&quot;,
+0014      &quot;cors&quot;: &quot;^2.8.5&quot;,
+0015      &quot;dotenv&quot;: &quot;^16.4.5&quot;,
+0016      &quot;express&quot;: &quot;^4.19.2&quot;,
+0017      &quot;helmet&quot;: &quot;^7.1.0&quot;,
+0018      &quot;jsonwebtoken&quot;: &quot;^9.0.2&quot;,
+0019      &quot;mysql2&quot;: &quot;^3.10.0&quot;
+0020    },
+0021    &quot;devDependencies&quot;: {
+0022      &quot;nodemon&quot;: &quot;^3.1.4&quot;
+0023    }
+0024  }
+</code></pre>
+<h3>2.2 文件：<code>.env.example</code></h3>
+<p>文件职责：环境变量示例配置，展示服务端口、数据库连接和令牌配置项。</p>
+<p>所属模块：项目配置。</p>
+<pre><code class="language-dotenv">0001  PORT=3000
+0002  DB_HOST=127.0.0.1
+0003  DB_PORT=3306
+0004  DB_USER=root
+0005  DB_PASSWORD=***
+0006  DB_NAME=international_student_platform
+0007  JWT_SECRET=***
+0008  JWT_EXPIRES_IN=8h
+</code></pre>
+<h3>2.3 文件：<code>src/server.js</code></h3>
+<p>文件职责：Node.js 后台服务入口，注册静态资源、接口路由和统一错误处理。</p>
+<p>所属模块：后端服务入口。</p>
+<pre><code class="language-javascript">0001  const path = require('path');
+0002  const express = require('express');
+0003  const cors = require('cors');
+0004  const helmet = require('helmet');
+0005  require('dotenv').config();
+0006  
+0007  const authRoutes = require('./routes/auth');
+0008  const studentRoutes = require('./routes/students');
+0009  const teacherRoutes = require('./routes/teachers');
+0010  const gradeRoutes = require('./routes/grades');
+0011  const managementRoutes = require('./routes/management');
+0012  
+0013  const app = express();
+0014  
+0015  app.use(helmet({ contentSecurityPolicy: false }));
+0016  app.use(cors());
+0017  app.use(express.json({ limit: '10mb' }));
+0018  app.get('/favicon.ico', (req, res) =&gt; {
+0019    res.redirect(302, '/favicon.svg');
+0020  });
+0021  app.use(express.static(path.join(__dirname, '..', 'public')));
+0022  
+0023  app.get('/api/health', (req, res) =&gt; {
+0024    res.json({ status: 'ok', name: 'international-student-platform' });
+0025  });
+0026  
+0027  app.use('/api/auth', authRoutes);
+0028  app.use('/api/students', studentRoutes);
+0029  app.use('/api/teachers', teacherRoutes);
+0030  app.use('/api/grades', gradeRoutes);
+0031  app.use('/api/management', managementRoutes);
+0032  
+0033  app.use((req, res) =&gt; {
+0034    res.status(404).json({ message: 'Not found' });
+0035  });
+0036  
+0037  app.use((error, req, res, next) =&gt; {
+0038    console.error(error);
+0039    res.status(500).json({ message: 'Internal server error' });
+0040  });
+0041  
+0042  if (require.main === module) {
+0043    const port = Number(process.env.PORT || 3000);
+0044    app.listen(port, () =&gt; {
+0045      console.log(`Server running at http://localhost:${port}`);
+0046    });
+0047  }
+0048  
+0049  module.exports = app;
+</code></pre>
+<h3>2.4 文件：<code>src/config/db.js</code></h3>
+<p>文件职责：MySQL 连接池配置，提供后端数据访问基础能力。</p>
+<p>所属模块：后端配置。</p>
+<pre><code class="language-javascript">0001  const mysql = require('mysql2/promise');
+0002  require('dotenv').config();
+0003  
+0004  const pool = mysql.createPool({
+0005    host: process.env.DB_HOST || '127.0.0.1',
+0006    port: Number(process.env.DB_PORT || 3306),
+0007    user: process.env.DB_USER || 'root',
+0008    password: process.env.DB_PASSWORD || '***',
+0009    database: process.env.DB_NAME || 'international_student_platform',
+0010    waitForConnections: true,
+0011    connectionLimit: 10,
+0012    namedPlaceholders: true
+0013  });
+0014  
+0015  module.exports = pool;
+</code></pre>
+<h3>2.5 文件：<code>src/middleware/auth.js</code></h3>
+<p>文件职责：JWT 鉴权中间件，按角色限制接口访问。</p>
+<p>所属模块：认证与权限。</p>
+<pre><code class="language-javascript">0001  const jwt = require('jsonwebtoken');
+0002  
+0003  function auth(requiredRoles = []) {
+0004    return (req, res, next) =&gt; {
+0005      const header = req.headers.authorization || '';
+0006      const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+0007  
+0008      if (!token) {
+0009        return res.status(401).json({ message: 'Missing authorization token' });
+0010      }
+0011  
+0012      try {
+0013        const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
+0014        if (requiredRoles.length &amp;&amp; !requiredRoles.includes(payload.role)) {
+0015          return res.status(403).json({ message: 'Permission denied' });
+0016        }
+0017        req.user = payload;
+0018        next();
+0019      } catch (error) {
+0020        return res.status(401).json({ message: 'Invalid or expired token' });
+0021      }
+0022    };
+0023  }
+0024  
+0025  module.exports = auth;
+</code></pre>
+<h3>2.6 文件：<code>src/routes/auth.js</code></h3>
+<p>文件职责：登录接口路由，完成账号校验、密码校验和令牌签发。</p>
+<p>所属模块：认证与权限。</p>
+<pre><code class="language-javascript">0001  const express = require('express');
+0002  const bcrypt = require('bcryptjs');
+0003  const jwt = require('jsonwebtoken');
+0004  const pool = require('../config/db');
+0005  
+0006  const router = express.Router();
+0007  
+0008  router.post('/login', async (req, res, next) =&gt; {
+0009    try {
+0010      const { username, password } = req.body;
+0011      const [rows] = await pool.execute(
+0012        'SELECT id, username, password_hash, role, display_name, status FROM users WHERE username = :username LIMIT 1',
+0013        { username }
+0014      );
+0015  
+0016      const user = rows[0];
+0017      if (!user || user.status !== 'active') {
+0018        return res.status(401).json({ message: 'Invalid username or password' });
+0019      }
+0020  
+0021      const ok = await bcrypt.compare(password, user.password_hash);
+0022      if (!ok) {
+0023        return res.status(401).json({ message: 'Invalid username or password' });
+0024      }
+0025  
+0026      const token = jwt.sign(
+0027        { id: user.id, username: user.username, role: user.role, name: user.display_name },
+0028        process.env.JWT_SECRET || 'dev_secret',
+0029        { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+0030      );
+0031  
+0032      res.json({
+0033        token,
+0034        user: {
+0035          id: user.id,
+0036          username: user.username,
+0037          role: user.role,
+0038          displayName: user.display_name
+0039        }
+0040      });
+0041    } catch (error) {
+0042      next(error);
+0043    }
+0044  });
+0045  
+0046  module.exports = router;
+</code></pre>
+<h3>2.7 文件：<code>src/routes/students.js</code></h3>
+<p>文件职责：学生档案接口路由，支持本人档案和学生列表查询。</p>
+<p>所属模块：学生档案模块。</p>
+<pre><code class="language-javascript">0001  const express = require('express');
+0002  const pool = require('../config/db');
+0003  const auth = require('../middleware/auth');
+0004  
+0005  const router = express.Router();
+0006  
+0007  router.get('/me', auth(['student']), async (req, res, next) =&gt; {
+0008    try {
+0009      const [rows] = await pool.execute(
+0010        `SELECT s.*, c.name AS class_name, n.name_zh AS nationality_zh, n.name_en AS nationality_en
+0011         FROM students s
+0012         LEFT JOIN classes c ON c.id = s.class_id
+0013         LEFT JOIN nationalities n ON n.id = s.nationality_id
+0014         WHERE s.user_id = :userId`,
+0015        { userId: req.user.id }
+0016      );
+0017      res.json(rows[0] || null);
+0018    } catch (error) {
+0019      next(error);
+0020    }
+0021  });
+0022  
+0023  router.get('/', auth(['admin', 'teacher']), async (req, res, next) =&gt; {
+0024    try {
+0025      const [rows] = await pool.execute(
+0026        `SELECT s.id, s.student_no, s.chinese_name, s.english_name, s.gender, s.enrollment_year,
+0027                s.status, c.name AS class_name, n.name_zh AS nationality
+0028         FROM students s
+0029         LEFT JOIN classes c ON c.id = s.class_id
+0030         LEFT JOIN nationalities n ON n.id = s.nationality_id
+0031         ORDER BY s.id DESC`
+0032      );
+0033      res.json(rows);
+0034    } catch (error) {
+0035      next(error);
+0036    }
+0037  });
+0038  
+0039  router.post('/', auth(['admin']), async (req, res, next) =&gt; {
+0040    try {
+0041      const data = req.body;
+0042      const [result] = await pool.execute(
+0043        `INSERT INTO students
+0044         (user_id, student_no, chinese_name, english_name, gender, birth_date, nationality_id,
+0045          passport_no, passport_expiry, phone, email, emergency_contact, enrollment_year,
+0046          major, college, class_id, status)
+0047         VALUES (:userId, :studentNo, :chineseName, :englishName, :gender, :birthDate, :nationalityId,
+0048          :passportNo, :passportExpiry, :phone, :email, :emergencyContact, :enrollmentYear,
+0049          :major, :college, :classId, :status)`,
+0050        {
+0051          userId: data.userId || null,
+0052          studentNo: data.studentNo,
+0053          chineseName: data.chineseName || null,
+0054          englishName: data.englishName,
+0055          gender: data.gender || null,
+0056          birthDate: data.birthDate || null,
+0057          nationalityId: data.nationalityId || null,
+0058          passportNo: data.passportNo || null,
+0059          passportExpiry: data.passportExpiry || null,
+0060          phone: data.phone || null,
+0061          email: data.email || null,
+0062          emergencyContact: data.emergencyContact || null,
+0063          enrollmentYear: data.enrollmentYear || null,
+0064          major: data.major || null,
+0065          college: data.college || null,
+0066          classId: data.classId || null,
+0067          status: data.status || 'active'
+0068        }
+0069      );
+0070      res.status(201).json({ id: result.insertId });
+0071    } catch (error) {
+0072      next(error);
+0073    }
+0074  });
+0075  
+0076  module.exports = router;
+</code></pre>
+<h3>2.8 文件：<code>src/routes/teachers.js</code></h3>
+<p>文件职责：教师管理接口路由，支持教师列表和教师班级查询。</p>
+<p>所属模块：教师管理模块。</p>
+<pre><code class="language-javascript">0001  const express = require('express');
+0002  const pool = require('../config/db');
+0003  const auth = require('../middleware/auth');
+0004  
+0005  const router = express.Router();
+0006  
+0007  router.get('/', auth(['admin']), async (req, res, next) =&gt; {
+0008    try {
+0009      const [rows] = await pool.execute(
+0010        `SELECT t.*, u.username
+0011         FROM teachers t
+0012         LEFT JOIN users u ON u.id = t.user_id
+0013         ORDER BY t.id DESC`
+0014      );
+0015      res.json(rows);
+0016    } catch (error) {
+0017      next(error);
+0018    }
+0019  });
+0020  
+0021  router.get('/me/classes', auth(['teacher']), async (req, res, next) =&gt; {
+0022    try {
+0023      const [rows] = await pool.execute(
+0024        `SELECT c.*
+0025         FROM classes c
+0026         JOIN teachers t ON t.id = c.teacher_id
+0027         WHERE t.user_id = :userId`,
+0028        { userId: req.user.id }
+0029      );
+0030      res.json(rows);
+0031    } catch (error) {
+0032      next(error);
+0033    }
+0034  });
+0035  
+0036  router.post('/', auth(['admin']), async (req, res, next) =&gt; {
+0037    try {
+0038      const data = req.body;
+0039      const [result] = await pool.execute(
+0040        `INSERT INTO teachers (user_id, teacher_no, name, college, phone, email, teacher_type)
+0041         VALUES (:userId, :teacherNo, :name, :college, :phone, :email, :teacherType)`,
+0042        {
+0043          userId: data.userId || null,
+0044          teacherNo: data.teacherNo,
+0045          name: data.name,
+0046          college: data.college || null,
+0047          phone: data.phone || null,
+0048          email: data.email || null,
+0049          teacherType: data.teacherType || 'course_teacher'
+0050        }
+0051      );
+0052      res.status(201).json({ id: result.insertId });
+0053    } catch (error) {
+0054      next(error);
+0055    }
+0056  });
+0057  
+0058  module.exports = router;
+</code></pre>
+<h3>2.9 文件：<code>src/routes/grades.js</code></h3>
+<p>文件职责：成绩适配接口路由，支持成绩列表、适配、查询和审核。</p>
+<p>所属模块：成绩适配模块。</p>
+<pre><code class="language-javascript">0001  const express = require('express');
+0002  const pool = require('../config/db');
+0003  const auth = require('../middleware/auth');
+0004  const { adaptGrade } = require('../services/gradeAdapter');
+0005  
+0006  const router = express.Router();
+0007  
+0008  async function findRule(schoolId, countryCode) {
+0009    const [rows] = await pool.execute(
+0010      `SELECT *
+0011       FROM grade_rules
+0012       WHERE (school_id = :schoolId OR school_id IS NULL)
+0013         AND (country_code = :countryCode OR country_code IS NULL)
+0014         AND status = 'active'
+0015       ORDER BY school_id DESC, id DESC
+0016       LIMIT 1`,
+0017      { schoolId: schoolId || null, countryCode: countryCode || null }
+0018    );
+0019    const rule = rows[0];
+0020    if (!rule) return {};
+0021  
+0022    return {
+0023      gpaScale: rule.gpa_scale,
+0024      creditRatio: rule.credit_ratio,
+0025      passScore: rule.pass_score,
+0026      version: rule.version
+0027    };
+0028  }
+0029  
+0030  router.get('/', auth(['admin', 'teacher']), async (req, res, next) =&gt; {
+0031    try {
+0032      const [rows] = await pool.execute(
+0033        `SELECT gr.*, s.student_no, s.english_name, s.chinese_name, es.name AS source_school_name
+0034         FROM grade_records gr
+0035         JOIN students s ON s.id = gr.student_id
+0036         LEFT JOIN external_schools es ON es.id = gr.source_school_id
+0037         ORDER BY gr.id DESC
+0038         LIMIT 200`
+0039      );
+0040      res.json(rows);
+0041    } catch (error) {
+0042      next(error);
+0043    }
+0044  });
+0045  
+0046  router.post('/adapt', auth(['admin', 'teacher']), async (req, res, next) =&gt; {
+0047    try {
+0048      const input = req.body;
+0049      const rule = await findRule(input.schoolId, input.countryCode);
+0050      const adapted = adaptGrade(input, rule);
+0051  
+0052      const [result] = await pool.execute(
+0053        `INSERT INTO grade_records
+0054         (student_id, course_code, course_name, source_school_id, source_country_code,
+0055          original_grade, original_type, original_credit, adapted_score, adapted_gpa,
+0056          adapted_credit, passed, rule_version, adapt_status, audit_status)
+0057         VALUES (:studentId, :courseCode, :courseName, :schoolId, :countryCode,
+0058          :originalGrade, :originalType, :originalCredit, :adaptedScore, :adaptedGpa,
+0059          :adaptedCredit, :passed, :ruleVersion, 'success', 'pending')`,
+0060        {
+0061          studentId: input.studentId,
+0062          courseCode: input.courseCode,
+0063          courseName: input.courseName,
+0064          schoolId: input.schoolId || null,
+0065          countryCode: input.countryCode || null,
+0066          originalGrade: String(input.originalGrade),
+0067          originalType: input.originalType,
+0068          originalCredit: input.originalCredit || 0,
+0069          adaptedScore: adapted.adaptedScore,
+0070          adaptedGpa: adapted.adaptedGpa,
+0071          adaptedCredit: adapted.adaptedCredit,
+0072          passed: adapted.passed ? 1 : 0,
+0073          ruleVersion: adapted.ruleVersion
+0074        }
+0075      );
+0076  
+0077      res.status(201).json({ id: result.insertId, ...adapted, auditStatus: 'pending' });
+0078    } catch (error) {
+0079      if (req.body &amp;&amp; req.body.studentId) {
+0080        await pool.execute(
+0081          `INSERT INTO grade_records
+0082           (student_id, course_code, course_name, source_school_id, source_country_code,
+0083            original_grade, original_type, original_credit, adapt_status, exception_reason, audit_status)
+0084           VALUES (:studentId, :courseCode, :courseName, :schoolId, :countryCode,
+0085            :originalGrade, :originalType, :originalCredit, 'exception', :reason, 'pending')`,
+0086          {
+0087            studentId: req.body.studentId,
+0088            courseCode: req.body.courseCode || null,
+0089            courseName: req.body.courseName || null,
+0090            schoolId: req.body.schoolId || null,
+0091            countryCode: req.body.countryCode || null,
+0092            originalGrade: String(req.body.originalGrade || ''),
+0093            originalType: req.body.originalType || null,
+0094            originalCredit: req.body.originalCredit || 0,
+0095            reason: error.message
+0096          }
+0097        );
+0098      }
+0099      res.status(422).json({ message: error.message });
+0100    }
+0101  });
+0102  
+0103  router.get('/student/:studentId', auth(['admin', 'teacher', 'student']), async (req, res, next) =&gt; {
+0104    try {
+0105      if (req.user.role === 'student') {
+0106        const [owned] = await pool.execute('SELECT id FROM students WHERE user_id = :userId', { userId: req.user.id });
+0107        if (!owned[0] || String(owned[0].id) !== String(req.params.studentId)) {
+0108          return res.status(403).json({ message: 'Permission denied' });
+0109        }
+0110      }
+0111  
+0112      const [rows] = await pool.execute(
+0113        `SELECT gr.*, es.name AS source_school_name
+0114         FROM grade_records gr
+0115         LEFT JOIN external_schools es ON es.id = gr.source_school_id
+0116         WHERE gr.student_id = :studentId
+0117         ORDER BY gr.id DESC`,
+0118        { studentId: req.params.studentId }
+0119      );
+0120      res.json(rows);
+0121    } catch (error) {
+0122      next(error);
+0123    }
+0124  });
+0125  
+0126  router.patch('/:id/audit', auth(['admin']), async (req, res, next) =&gt; {
+0127    try {
+0128      const { auditStatus } = req.body;
+0129      await pool.execute(
+0130        'UPDATE grade_records SET audit_status = :auditStatus, audited_by = :auditedBy, audited_at = NOW() WHERE id = :id',
+0131        { auditStatus, auditedBy: req.user.id, id: req.params.id }
+0132      );
+0133      res.json({ id: Number(req.params.id), auditStatus });
+0134    } catch (error) {
+0135      next(error);
+0136    }
+0137  });
+0138  
+0139  module.exports = router;
+</code></pre>
+<h3>2.10 文件：<code>src/routes/management.js</code></h3>
+<p>文件职责：管理统计和风险查询接口路由。</p>
+<p>所属模块：统计与风险模块。</p>
+<pre><code class="language-javascript">0001  const express = require('express');
+0002  const pool = require('../config/db');
+0003  const auth = require('../middleware/auth');
+0004  
+0005  const router = express.Router();
+0006  
+0007  router.get('/dashboard', auth(['admin', 'teacher']), async (req, res, next) =&gt; {
+0008    try {
+0009      const [[students]] = await pool.execute('SELECT COUNT(*) AS count FROM students');
+0010      const [[teachers]] = await pool.execute('SELECT COUNT(*) AS count FROM teachers');
+0011      const [[visaWarnings]] = await pool.execute(
+0012        'SELECT COUNT(*) AS count FROM visas WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)'
+0013      );
+0014      const [[gradeExceptions]] = await pool.execute(
+0015        &quot;SELECT COUNT(*) AS count FROM grade_records WHERE adapt_status = 'exception'&quot;
+0016      );
+0017  
+0018      res.json({
+0019        students: students.count,
+0020        teachers: teachers.count,
+0021        visaWarnings: visaWarnings.count,
+0022        gradeExceptions: gradeExceptions.count
+0023      });
+0024    } catch (error) {
+0025      next(error);
+0026    }
+0027  });
+0028  
+0029  router.get('/nationalities', auth(['admin', 'teacher', 'student']), async (req, res, next) =&gt; {
+0030    try {
+0031      const [rows] = await pool.execute('SELECT * FROM nationalities ORDER BY name_en');
+0032      res.json(rows);
+0033    } catch (error) {
+0034      next(error);
+0035    }
+0036  });
+0037  
+0038  router.get('/classes', auth(['admin', 'teacher']), async (req, res, next) =&gt; {
+0039    try {
+0040      const [rows] = await pool.execute(
+0041        `SELECT c.*, t.name AS teacher_name
+0042         FROM classes c
+0043         LEFT JOIN teachers t ON t.id = c.teacher_id
+0044         ORDER BY c.id DESC`
+0045      );
+0046      res.json(rows);
+0047    } catch (error) {
+0048      next(error);
+0049    }
+0050  });
+0051  
+0052  router.get('/risks', auth(['admin', 'teacher']), async (req, res, next) =&gt; {
+0053    try {
+0054      const [visaRisks] = await pool.execute(
+0055        `SELECT 'visa_expiring' AS risk_type, s.student_no, s.english_name, s.chinese_name,
+0056                v.expiry_date AS risk_date,
+0057                CONCAT('Visa expires on ', DATE_FORMAT(v.expiry_date, '%Y-%m-%d')) AS detail
+0058         FROM visas v
+0059         JOIN students s ON s.id = v.student_id
+0060         WHERE v.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)
+0061         ORDER BY v.expiry_date ASC
+0062         LIMIT 100`
+0063      );
+0064  
+0065      const [gradeRisks] = await pool.execute(
+0066        `SELECT 'grade_exception' AS risk_type, s.student_no, s.english_name, s.chinese_name,
+0067                gr.created_at AS risk_date,
+0068                CONCAT(COALESCE(gr.course_name, 'Unknown course'), ': ', COALESCE(gr.exception_reason, gr.adapt_status)) AS detail
+0069         FROM grade_records gr
+0070         JOIN students s ON s.id = gr.student_id
+0071         WHERE gr.adapt_status = 'exception'
+0072         ORDER BY gr.created_at DESC
+0073         LIMIT 100`
+0074      );
+0075  
+0076      const [lowScoreRisks] = await pool.execute(
+0077        `SELECT 'low_score' AS risk_type, s.student_no, s.english_name, s.chinese_name,
+0078                gr.created_at AS risk_date,
+0079                CONCAT(COALESCE(gr.course_name, 'Unknown course'), ': adapted score ', gr.adapted_score) AS detail
+0080         FROM grade_records gr
+0081         JOIN students s ON s.id = gr.student_id
+0082         WHERE gr.adapted_score IS NOT NULL AND gr.adapted_score &lt; 60
+0083         ORDER BY gr.adapted_score ASC
+0084         LIMIT 100`
+0085      );
+0086  
+0087      const [learningRisks] = await pool.execute(
+0088        `SELECT 'learning_warning' AS risk_type, s.student_no, s.english_name, s.chinese_name,
+0089                sr.recorded_at AS risk_date,
+0090                CONCAT(sr.course_name, ': ', sr.warning_level, ', attendance ', COALESCE(sr.attendance_rate, 0), '%') AS detail
+0091         FROM study_records sr
+0092         JOIN students s ON s.id = sr.student_id
+0093         WHERE sr.warning_level IN ('warning', 'serious') OR sr.attendance_rate &lt; 70
+0094         ORDER BY sr.recorded_at DESC
+0095         LIMIT 100`
+0096      );
+0097  
+0098      const [dormitoryRisks] = await pool.execute(
+0099        `SELECT 'dormitory_exception' AS risk_type, s.student_no, s.english_name, s.chinese_name,
+0100                d.check_out_date AS risk_date,
+0101                CONCAT(d.building, '-', d.room_no, '-', d.bed_no, ': ', d.status) AS detail
+0102         FROM dormitories d
+0103         JOIN students s ON s.id = d.student_id
+0104         WHERE d.status IN ('maintenance', 'reserved') OR d.check_out_date &lt; CURDATE()
+0105         ORDER BY d.check_out_date ASC
+0106         LIMIT 100`
+0107      );
+0108  
+0109      const items = [...visaRisks, ...gradeRisks, ...lowScoreRisks, ...learningRisks, ...dormitoryRisks];
+0110      const summary = items.reduce((acc, item) =&gt; {
+0111        acc[item.risk_type] = (acc[item.risk_type] || 0) + 1;
+0112        return acc;
+0113      }, {});
+0114  
+0115      res.json({ summary, items });
+0116    } catch (error) {
+0117      next(error);
+0118    }
+0119  });
+0120  
+0121  module.exports = router;
+</code></pre>
+<h3>2.11 文件：<code>src/services/gradeAdapter.js</code></h3>
+<p>文件职责：成绩适配核心服务，实现百分制、字母制、GPA 和通过制换算。</p>
+<p>所属模块：成绩适配模块。</p>
+<pre><code class="language-javascript">0001  const LETTER_TO_PERCENT = {
+0002    A: 95,
+0003    'A-': 90,
+0004    B: 85,
+0005    'B-': 80,
+0006    C: 75,
+0007    'C-': 70,
+0008    D: 65,
+0009    F: 50
+0010  };
+0011  
+0012  function gpaToPercent(value, scale) {
+0013    const numeric = Number(value);
+0014    const max = Number(scale || 4);
+0015    if (Number.isNaN(numeric) || max &lt;= 0) {
+0016      throw new Error('Invalid GPA value');
+0017    }
+0018    return Math.round((numeric / max) * 100);
+0019  }
+0020  
+0021  function toGpa4(percent) {
+0022    if (percent &gt;= 90) return 4.0;
+0023    if (percent &gt;= 85) return 3.7;
+0024    if (percent &gt;= 80) return 3.3;
+0025    if (percent &gt;= 75) return 3.0;
+0026    if (percent &gt;= 70) return 2.7;
+0027    if (percent &gt;= 65) return 2.3;
+0028    if (percent &gt;= 60) return 2.0;
+0029    return 0;
+0030  }
+0031  
+0032  function adaptGrade(input, rule = {}) {
+0033    const type = String(input.originalType || '').toLowerCase();
+0034    let percent;
+0035  
+0036    if (type === 'percent') {
+0037      percent = Number(input.originalGrade);
+0038    } else if (type === 'letter') {
+0039      percent = LETTER_TO_PERCENT[String(input.originalGrade).trim().toUpperCase()];
+0040    } else if (type === 'gpa') {
+0041      percent = gpaToPercent(input.originalGrade, rule.gpaScale || input.gpaScale || 4);
+0042    } else if (type === 'pass_fail') {
+0043      percent = String(input.originalGrade).toLowerCase() === 'pass' ? 75 : 50;
+0044    } else {
+0045      throw new Error('Unsupported grade type');
+0046    }
+0047  
+0048    if (typeof percent !== 'number' || Number.isNaN(percent) || percent &lt; 0 || percent &gt; 100) {
+0049      throw new Error('Adapted grade is out of range');
+0050    }
+0051  
+0052    const creditRatio = Number(rule.creditRatio || input.creditRatio || 1);
+0053    return {
+0054      adaptedScore: Math.round(percent),
+0055      adaptedGpa: toGpa4(percent),
+0056      adaptedCredit: Number((Number(input.originalCredit || 0) * creditRatio).toFixed(2)),
+0057      passed: percent &gt;= Number(rule.passScore || 60),
+0058      ruleVersion: rule.version || 'default-v1'
+0059    };
+0060  }
+0061  
+0062  module.exports = { adaptGrade };
+</code></pre>
+<h3>2.12 文件：<code>src/initDb.js</code></h3>
+<p>文件职责：数据库初始化脚本，执行建库建表 SQL。</p>
+<p>所属模块：数据初始化。</p>
+<pre><code class="language-javascript">0001  const fs = require('fs');
+0002  const path = require('path');
+0003  const mysql = require('mysql2/promise');
+0004  require('dotenv').config();
+0005  
+0006  async function initDb() {
+0007    const sql = fs.readFileSync(path.join(__dirname, '..', 'database', 'schema.sql'), 'utf8');
+0008    const connection = await mysql.createConnection({
+0009      host: process.env.DB_HOST || '127.0.0.1',
+0010      port: Number(process.env.DB_PORT || 3306),
+0011      user: process.env.DB_USER || 'root',
+0012      password: process.env.DB_PASSWORD || '***',
+0013      multipleStatements: true
+0014    });
+0015  
+0016    await connection.query(sql);
+0017    await connection.end();
+0018    console.log('Database initialized.');
+0019  }
+0020  
+0021  initDb().catch((error) =&gt; {
+0022    console.error(error.message);
+0023    process.exit(1);
+0024  });
+</code></pre>
+<h3>2.13 文件：<code>src/seedBusinessData.js</code></h3>
+<p>文件职责：业务关联测试数据种子脚本，生成学生、教师、班级、成绩和风险数据。</p>
+<p>所属模块：数据初始化。</p>
+<pre><code class="language-javascript">0001  const bcrypt = require('bcryptjs');
+0002  const pool = require('./config/db');
+0003  const { adaptGrade } = require('./services/gradeAdapter');
+0004  
+0005  const passwordHash = bcrypt.hashSync('******', 10);
+0006  const countryCodes = [
+0007    'TH', 'VN', 'MY', 'ID', 'PH', 'SG', 'LA', 'KH', 'MM', 'BN',
+0008    'CN', 'JP', 'KR', 'IN', 'PK', 'BD', 'LK', 'NP', 'MN', 'KZ'
+0009  ];
+0010  const gradeTypes = ['percent', 'letter', 'gpa', 'pass_fail'];
+0011  const letters = ['A', 'A-', 'B', 'B-', 'C', 'C-', 'D', 'F'];
+0012  
+0013  function pad(num, size = 3) {
+0014    return String(num).padStart(size, '0');
+0015  }
+0016  
+0017  function datePlus(days) {
+0018    const date = new Date();
+0019    date.setDate(date.getDate() + days);
+0020    return date.toISOString().slice(0, 10);
+0021  }
+0022  
+0023  async function execute(sql, params = {}) {
+0024    await pool.execute(sql, params);
+0025  }
+0026  
+0027  async function seedUsers() {
+0028    await execute(
+0029      `INSERT INTO users (id, username, password_hash, role, display_name, status)
+0030       VALUES (1, 'admin', :passwordHash, 'admin', 'System Admin', 'active')
+0031       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), status = 'active'`,
+0032      { passwordHash }
+0033    );
+0034  
+0035    for (let i = 1; i &lt;= 120; i += 1) {
+0036      await execute(
+0037        `INSERT INTO users (id, username, password_hash, role, display_name, status)
+0038         VALUES (:id, :username, :passwordHash, :role, :displayName, 'active')
+0039         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = VALUES(role), display_name = VALUES(display_name), status = 'active'`,
+0040        {
+0041          id: 1000 + i,
+0042          username: `teacher${pad(i)}`,
+0043          passwordHash,
+0044          role: 'teacher',
+0045          displayName: `Teacher ${pad(i)}`
+0046        }
+0047      );
+0048    }
+0049  
+0050    for (let i = 1; i &lt;= 180; i += 1) {
+0051      await execute(
+0052        `INSERT INTO users (id, username, password_hash, role, display_name, status)
+0053         VALUES (:id, :username, :passwordHash, 'student', :displayName, 'active')
+0054         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'student', display_name = VALUES(display_name), status = 'active'`,
+0055        {
+0056          id: 2000 + i,
+0057          username: `student${pad(i)}`,
+0058          passwordHash,
+0059          displayName: `International Student ${pad(i)}`
+0060        }
+0061      );
+0062    }
+0063  }
+0064  
+0065  async function seedNationalities() {
+0066    for (let i = 1; i &lt;= 120; i += 1) {
+0067      const code = `${countryCodes[(i - 1) % countryCodes.length]}${pad(Math.ceil(i / countryCodes.length), 2)}`;
+0068      await execute(
+0069        `INSERT INTO nationalities (id, country_code, name_zh, name_en, continent, primary_language, timezone)
+0070         VALUES (:id, :countryCode, :nameZh, :nameEn, 'Asia-Pacific', :language, :timezone)
+0071         ON DUPLICATE KEY UPDATE name_zh = VALUES(name_zh), name_en = VALUES(name_en), primary_language = VALUES(primary_language), timezone = VALUES(timezone)`,
+0072        {
+0073          id: i,
+0074          countryCode: code,
+0075          nameZh: `国际生来源地${pad(i)}`,
+0076          nameEn: `International Region ${pad(i)}`,
+0077          language: `Language ${pad(((i - 1) % 20) + 1, 2)}`,
+0078          timezone: `Asia/Test-${pad(((i - 1) % 24) + 1, 2)}`
+0079        }
+0080      );
+0081    }
+0082  }
+0083  
+0084  async function seedTeachers() {
+0085    for (let i = 1; i &lt;= 120; i += 1) {
+0086      await execute(
+0087        `INSERT INTO teachers (id, user_id, teacher_no, name, college, phone, email, teacher_type)
+0088         VALUES (:id, :userId, :teacherNo, :name, :college, :phone, :email, :teacherType)
+0089         ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), name = VALUES(name), college = VALUES(college), phone = VALUES(phone), email = VALUES(email), teacher_type = VALUES(teacher_type)`,
+0090        {
+0091          id: i,
+0092          userId: 1000 + i,
+0093          teacherNo: `T2026${pad(i)}`,
+0094          name: `Teacher ${pad(i)}`,
+0095          college: i % 2 === 0 ? 'International Education College' : 'School of Language Studies',
+0096          phone: `1380000${pad(i, 4)}`,
+0097          email: `teacher${pad(i)}@example.edu`,
+0098          teacherType: ['course_teacher', 'head_teacher', 'counselor', 'admin_teacher'][i % 4]
+0099        }
+0100      );
+0101    }
+0102  }
+0103  
+0104  async function seedClasses() {
+0105    for (let i = 1; i &lt;= 120; i += 1) {
+0106      await execute(
+0107        `INSERT INTO classes (id, code, name, college, major, teacher_id, enrollment_year)
+0108         VALUES (:id, :code, :name, :college, :major, :teacherId, :year)
+0109         ON DUPLICATE KEY UPDATE name = VALUES(name), college = VALUES(college), major = VALUES(major), teacher_id = VALUES(teacher_id), enrollment_year = VALUES(enrollment_year)`,
+0110        {
+0111          id: i,
+0112          code: `ISE-2026-${pad(i)}`,
+0113          name: `International Student Class ${pad(i)}`,
+0114          college: i % 2 === 0 ? 'International Education College' : 'School of Language Studies',
+0115          major: ['Chinese Language', 'Business Chinese', 'Computer Science', 'International Trade'][i % 4],
+0116          teacherId: ((i - 1) % 120) + 1,
+0117          year: 2024 + (i % 3)
+0118        }
+0119      );
+0120    }
+0121  }
+0122  
+0123  async function seedStudents() {
+0124    for (let i = 1; i &lt;= 180; i += 1) {
+0125      await execute(
+0126        `INSERT INTO students
+0127         (id, user_id, student_no, chinese_name, english_name, gender, birth_date, nationality_id,
+0128          passport_no, passport_expiry, phone, email, emergency_contact, enrollment_year, major, college, class_id, status)
+0129         VALUES (:id, :userId, :studentNo, :chineseName, :englishName, :gender, :birthDate, :nationalityId,
+0130          :passportNo, :passportExpiry, :phone, :email, :emergencyContact, :enrollmentYear, :major, :college, :classId, :status)
+0131         ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), chinese_name = VALUES(chinese_name), english_name = VALUES(english_name),
+0132          nationality_id = VALUES(nationality_id), class_id = VALUES(class_id), status = VALUES(status)`,
+0133        {
+0134          id: i,
+0135          userId: 2000 + i,
+0136          studentNo: `S2026${pad(i)}`,
+0137          chineseName: `留学生${pad(i)}`,
+0138          englishName: `International Student ${pad(i)}`,
+0139          gender: i % 2 === 0 ? 'Male' : 'Female',
+0140          birthDate: `200${i % 6}-0${(i % 9) + 1}-15`,
+0141          nationalityId: ((i - 1) % 120) + 1,
+0142          passportNo: `P${pad(i, 6)}`,
+0143          passportExpiry: datePlus(365 + i),
+0144          phone: `1390000${pad(i, 4)}`,
+0145          email: `student${pad(i)}@example.com`,
+0146          emergencyContact: `Family Contact ${pad(i)}`,
+0147          enrollmentYear: 2024 + (i % 3),
+0148          major: ['Chinese Language', 'Business Chinese', 'Computer Science', 'International Trade'][i % 4],
+0149          college: i % 2 === 0 ? 'International Education College' : 'School of Language Studies',
+0150          classId: ((i - 1) % 120) + 1,
+0151          status: ['active', 'active', 'active', 'delayed', 'suspended'][i % 5]
+0152        }
+0153      );
+0154    }
+0155  }
+0156  
+0157  async function seedDormitories() {
+0158    for (let i = 1; i &lt;= 180; i += 1) {
+0159      await execute(
+0160        `INSERT INTO dormitories (id, building, room_no, bed_no, student_id, check_in_date, check_out_date, status)
+0161         VALUES (:id, :building, :roomNo, :bedNo, :studentId, :checkIn, :checkOut, :status)
+0162         ON DUPLICATE KEY UPDATE student_id = VALUES(student_id), check_out_date = VALUES(check_out_date), status = VALUES(status)`,
+0163        {
+0164          id: i,
+0165          building: `International Dorm ${((i - 1) % 8) + 1}`,
+0166          roomNo: `${100 + ((i - 1) % 60)}`,
+0167          bedNo: `${((i - 1) % 4) + 1}`,
+0168          studentId: i,
+0169          checkIn: '2026-09-01',
+0170          checkOut: i % 17 === 0 ? datePlus(-5) : datePlus(200 + i),
+0171          status: i % 29 === 0 ? 'maintenance' : 'occupied'
+0172        }
+0173      );
+0174    }
+0175  }
+0176  
+0177  async function seedVisas() {
+0178    for (let i = 1; i &lt;= 180; i += 1) {
+0179      await execute(
+0180        `INSERT INTO visas (id, student_id, visa_type, visa_no, issue_date, expiry_date, residence_permit_no, document_url, status)
+0181         VALUES (:id, :studentId, :visaType, :visaNo, :issueDate, :expiryDate, :permitNo, :documentUrl, :status)
+0182         ON DUPLICATE KEY UPDATE expiry_date = VALUES(expiry_date), status = VALUES(status)`,
+0183        {
+0184          id: i,
+0185          studentId: i,
+0186          visaType: i % 2 === 0 ? 'X1' : 'X2',
+0187          visaNo: `VISA${pad(i, 6)}`,
+0188          issueDate: '2026-01-10',
+0189          expiryDate: i % 9 === 0 ? datePlus(20 + (i % 30)) : datePlus(180 + i),
+0190          permitNo: `RP${pad(i, 6)}`,
+0191          documentUrl: `/uploads/visa/${pad(i)}.pdf`,
+0192          status: i % 9 === 0 ? 'expiring' : 'valid'
+0193        }
+0194      );
+0195    }
+0196  }
+0197  
+0198  async function seedStudyRecords() {
+0199    for (let i = 1; i &lt;= 240; i += 1) {
+0200      const attendance = 55 + (i % 46);
+0201      await execute(
+0202        `INSERT INTO study_records
+0203         (id, student_id, course_code, course_name, attendance_rate, homework_status, class_performance, warning_level, teacher_id)
+0204         VALUES (:id, :studentId, :courseCode, :courseName, :attendance, :homeworkStatus, :performance, :warningLevel, :teacherId)
+0205         ON DUPLICATE KEY UPDATE attendance_rate = VALUES(attendance_rate), warning_level = VALUES(warning_level), teacher_id = VALUES(teacher_id)`,
+0206        {
+0207          id: i,
+0208          studentId: ((i - 1) % 180) + 1,
+0209          courseCode: `CN${100 + (i % 12)}`,
+0210          courseName: ['Chinese Listening', 'Chinese Speaking', 'Chinese Reading', 'Academic Writing'][i % 4],
+0211          attendance,
+0212          homeworkStatus: attendance &lt; 70 ? 'Incomplete' : 'Completed',
+0213          performance: attendance &lt; 70 ? 'Needs support' : 'Normal',
+0214          warningLevel: attendance &lt; 65 ? 'serious' : attendance &lt; 75 ? 'warning' : 'none',
+0215          teacherId: ((i - 1) % 120) + 1
+0216        }
+0217      );
+0218    }
+0219  }
+0220  
+0221  async function seedExternalSchools() {
+0222    for (let i = 1; i &lt;= 120; i += 1) {
+0223      await execute(
+0224        `INSERT INTO external_schools (id, country_code, name, contact_name, contact_email, integration_type, endpoint_url, status)
+0225         VALUES (:id, :countryCode, :name, :contactName, :contactEmail, :integrationType, :endpointUrl, 'active')
+0226         ON DUPLICATE KEY UPDATE country_code = VALUES(country_code), name = VALUES(name), integration_type = VALUES(integration_type), endpoint_url = VALUES(endpoint_url), status = 'active'`,
+0227        {
+0228          id: i,
+0229          countryCode: `${countryCodes[(i - 1) % countryCodes.length]}${pad(Math.ceil(i / countryCodes.length), 2)}`,
+0230          name: `Partner School ${pad(i)}`,
+0231          contactName: `Partner Contact ${pad(i)}`,
+0232          contactEmail: `partner${pad(i)}@school.example`,
+0233          integrationType: ['api', 'excel', 'csv', 'manual', 'scheduled_sync'][i % 5],
+0234          endpointUrl: `https://partner${pad(i)}.example.edu/api/grades`
+0235        }
+0236      );
+0237    }
+0238  }
+0239  
+0240  async function seedGradeRules() {
+0241    for (let i = 1; i &lt;= 120; i += 1) {
+0242      await execute(
+0243        `INSERT INTO grade_rules (id, school_id, country_code, name, version, gpa_scale, credit_ratio, pass_score, status, effective_from, effective_to)
+0244         VALUES (:id, :schoolId, :countryCode, :name, :version, :gpaScale, :creditRatio, :passScore, 'active', '2026-01-01', '2028-12-31')
+0245         ON DUPLICATE KEY UPDATE gpa_scale = VALUES(gpa_scale), credit_ratio = VALUES(credit_ratio), pass_score = VALUES(pass_score), status = 'active'`,
+0246        {
+0247          id: i,
+0248          schoolId: i,
+0249          countryCode: `${countryCodes[(i - 1) % countryCodes.length]}${pad(Math.ceil(i / countryCodes.length), 2)}`,
+0250          name: `Grade Adaptation Rule ${pad(i)}`,
+0251          version: `RULE-2026-${pad(i)}`,
+0252          gpaScale: i % 3 === 0 ? 5 : 4,
+0253          creditRatio: 0.8 + ((i % 5) * 0.1),
+0254          passScore: i % 4 === 0 ? 65 : 60
+0255        }
+0256      );
+0257    }
+0258  }
+0259  
+0260  function originalGrade(i, type) {
+0261    if (type === 'percent') return String(45 + (i % 56));
+0262    if (type === 'letter') return letters[i % letters.length];
+0263    if (type === 'gpa') return String(((i % 41) / 10).toFixed(1));
+0264    return i % 6 === 0 ? 'fail' : 'pass';
+0265  }
+0266  
+0267  async function seedGradeRecords() {
+0268    for (let i = 1; i &lt;= 360; i += 1) {
+0269      const type = gradeTypes[i % gradeTypes.length];
+0270      const studentId = ((i - 1) % 180) + 1;
+0271      const schoolId = ((i - 1) % 120) + 1;
+0272      const countryCode = `${countryCodes[(schoolId - 1) % countryCodes.length]}${pad(Math.ceil(schoolId / countryCodes.length), 2)}`;
+0273      const grade = originalGrade(i, type);
+0274      const rule = {
+0275        gpaScale: schoolId % 3 === 0 ? 5 : 4,
+0276        creditRatio: 0.8 + ((schoolId % 5) * 0.1),
+0277        passScore: schoolId % 4 === 0 ? 65 : 60,
+0278        version: `RULE-2026-${pad(schoolId)}`
+0279      };
+0280  
+0281      if (i % 37 === 0) {
+0282        await execute(
+0283          `INSERT INTO grade_records
+0284           (id, student_id, course_code, course_name, source_school_id, source_country_code,
+0285            original_grade, original_type, original_credit, adapt_status, exception_reason, audit_status)
+0286           VALUES (:id, :studentId, :courseCode, :courseName, :schoolId, :countryCode,
+0287            'N/A', 'letter', :credit, 'exception', 'Source grade cannot be mapped', 'pending')
+0288           ON DUPLICATE KEY UPDATE adapt_status = 'exception', exception_reason = VALUES(exception_reason), audit_status = 'pending'`,
+0289          {
+0290            id: i,
+0291            studentId,
+0292            courseCode: `CR${100 + (i % 20)}`,
+0293            courseName: ['Mathematics', 'Chinese Language', 'Computer Basics', 'Economics'][i % 4],
+0294            schoolId,
+0295            countryCode,
+0296            credit: 1 + (i % 4)
+0297          }
+0298        );
+0299        continue;
+0300      }
+0301  
+0302      const adapted = adaptGrade(
+0303        { originalType: type, originalGrade: grade, originalCredit: 1 + (i % 4) },
+0304        rule
+0305      );
+0306  
+0307      await execute(
+0308        `INSERT INTO grade_records
+0309         (id, student_id, course_code, course_name, source_school_id, source_country_code,
+0310          original_grade, original_type, original_credit, adapted_score, adapted_gpa, adapted_credit,
+0311          passed, rule_version, adapt_status, audit_status, audited_by, audited_at)
+0312         VALUES (:id, :studentId, :courseCode, :courseName, :schoolId, :countryCode,
+0313          :originalGrade, :originalType, :originalCredit, :adaptedScore, :adaptedGpa, :adaptedCredit,
+0314          :passed, :ruleVersion, 'success', :auditStatus, 1, NOW())
+0315         ON DUPLICATE KEY UPDATE adapted_score = VALUES(adapted_score), adapted_gpa = VALUES(adapted_gpa),
+0316          adapted_credit = VALUES(adapted_credit), passed = VALUES(passed), rule_version = VALUES(rule_version),
+0317          adapt_status = 'success', audit_status = VALUES(audit_status)`,
+0318        {
+0319          id: i,
+0320          studentId,
+0321          courseCode: `CR${100 + (i % 20)}`,
+0322          courseName: ['Mathematics', 'Chinese Language', 'Computer Basics', 'Economics'][i % 4],
+0323          schoolId,
+0324          countryCode,
+0325          originalGrade: grade,
+0326          originalType: type,
+0327          originalCredit: 1 + (i % 4),
+0328          adaptedScore: adapted.adaptedScore,
+0329          adaptedGpa: adapted.adaptedGpa,
+0330          adaptedCredit: adapted.adaptedCredit,
+0331          passed: adapted.passed ? 1 : 0,
+0332          ruleVersion: adapted.ruleVersion,
+0333          auditStatus: i % 5 === 0 ? 'pending' : 'approved'
+0334        }
+0335      );
+0336    }
+0337  }
+0338  
+0339  async function seedDemoAliases() {
+0340    await execute(
+0341      `INSERT INTO teachers (id, user_id, teacher_no, name, college, phone, email, teacher_type)
+0342       VALUES (121, 2, 'T-DEMO-001', 'Teacher Demo', 'International Education College', '138********', '***@example.com', 'head_teacher')
+0343       ON DUPLICATE KEY UPDATE user_id = 2, name = VALUES(name), college = VALUES(college), phone = VALUES(phone), email = VALUES(email), teacher_type = VALUES(teacher_type)`
+0344    );
+0345  
+0346    await execute(
+0347      `INSERT INTO classes (id, code, name, college, major, teacher_id, enrollment_year)
+0348       VALUES (121, 'ISE-DEMO-001', 'Demo International Student Class', 'International Education College', 'Chinese Language', 121, 2026)
+0349       ON DUPLICATE KEY UPDATE name = VALUES(name), teacher_id = 121, enrollment_year = 2026`
+0350    );
+0351  
+0352    await execute(
+0353      `INSERT INTO students
+0354       (id, user_id, student_no, chinese_name, english_name, gender, birth_date, nationality_id,
+0355        passport_no, passport_expiry, phone, email, emergency_contact, enrollment_year, major, college, class_id, status)
+0356       VALUES (181, 3, 'S-DEMO-001', '学生示例', 'Student Demo', 'Female', '2004-08-01', 1,
+0357        'PDEMO001', :passportExpiry, '139********', '***@example.com', 'Family Demo', 2026,
+0358        'Chinese Language', 'International Education College', 121, 'active')
+0359       ON DUPLICATE KEY UPDATE user_id = 3, class_id = 121, status = 'active'`,
+0360      { passportExpiry: datePlus(900) }
+0361    );
+0362  
+0363    await execute(
+0364      `INSERT INTO dormitories (id, building, room_no, bed_no, student_id, check_in_date, check_out_date, status)
+0365       VALUES (181, 'International Dorm Demo', 'D101', '1', 181, '2026-09-01', :checkOut, 'occupied')
+0366       ON DUPLICATE KEY UPDATE student_id = 181, check_out_date = VALUES(check_out_date), status = 'occupied'`,
+0367      { checkOut: datePlus(360) }
+0368    );
+0369  
+0370    await execute(
+0371      `INSERT INTO visas (id, student_id, visa_type, visa_no, issue_date, expiry_date, residence_permit_no, document_url, status)
+0372       VALUES (181, 181, 'X1', 'VISA-DEMO-001', '2026-01-10', :expiryDate, 'RP-DEMO-001', '/uploads/visa/demo.pdf', 'valid')
+0373       ON DUPLICATE KEY UPDATE student_id = 181, expiry_date = VALUES(expiry_date), status = 'valid'`,
+0374      { expiryDate: datePlus(360) }
+0375    );
+0376  
+0377    await execute(
+0378      `INSERT INTO study_records
+0379       (id, student_id, course_code, course_name, attendance_rate, homework_status, class_performance, warning_level, teacher_id)
+0380       VALUES (241, 181, 'CN-DEMO', 'Demo Chinese Language', 92.50, 'Completed', 'Normal', 'none', 121)
+0381       ON DUPLICATE KEY UPDATE student_id = 181, attendance_rate = VALUES(attendance_rate), warning_level = 'none', teacher_id = 121`
+0382    );
+0383  
+0384    const adapted = adaptGrade(
+0385      { originalType: 'letter', originalGrade: 'A', originalCredit: 3 },
+0386      { creditRatio: 1, passScore: 60, version: 'DEMO-RULE-2026' }
+0387    );
+0388    await execute(
+0389      `INSERT INTO grade_records
+0390       (id, student_id, course_code, course_name, source_school_id, source_country_code,
+0391        original_grade, original_type, original_credit, adapted_score, adapted_gpa, adapted_credit,
+0392        passed, rule_version, adapt_status, audit_status, audited_by, audited_at)
+0393       VALUES (500, 181, 'CN-DEMO', 'Demo Chinese Language', 1, 'TH01',
+0394        'A', 'letter', 3, :adaptedScore, :adaptedGpa, :adaptedCredit,
+0395        1, :ruleVersion, 'success', 'approved', 1, NOW())
+0396       ON DUPLICATE KEY UPDATE adapted_score = VALUES(adapted_score), adapted_gpa = VALUES(adapted_gpa),
+0397        adapted_credit = VALUES(adapted_credit), adapt_status = 'success', audit_status = 'approved'`,
+0398      adapted
+0399    );
+0400  }
+0401  
+0402  async function main() {
+0403    await seedUsers();
+0404    await seedNationalities();
+0405    await seedTeachers();
+0406    await seedClasses();
+0407    await seedStudents();
+0408    await seedDormitories();
+0409    await seedVisas();
+0410    await seedStudyRecords();
+0411    await seedExternalSchools();
+0412    await seedGradeRules();
+0413    await seedGradeRecords();
+0414    await seedDemoAliases();
+0415    await pool.end();
+0416    console.log('Business seed data inserted.');
+0417  }
+0418  
+0419  main().catch(async (error) =&gt; {
+0420    console.error(error);
+0421    await pool.end();
+0422    process.exit(1);
+0423  });
+</code></pre>
+<h3>2.14 文件：<code>database/schema.sql</code></h3>
+<p>文件职责：MySQL 数据库建表脚本和基础数据脚本。</p>
+<p>所属模块：数据层。</p>
+<pre><code class="language-sql">0001  CREATE DATABASE IF NOT EXISTS international_student_platform
+0002    DEFAULT CHARACTER SET utf8mb4
+0003    DEFAULT COLLATE utf8mb4_unicode_ci;
+0004  
+0005  USE international_student_platform;
+0006  
+0007  CREATE TABLE IF NOT EXISTS users (
+0008    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0009    username VARCHAR(64) NOT NULL UNIQUE,
+0010    password_hash VARCHAR(255) NOT NULL,
+0011    role ENUM('student', 'teacher', 'admin') NOT NULL,
+0012    display_name VARCHAR(120) NOT NULL,
+0013    status ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
+0014    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+0015  );
+0016  
+0017  CREATE TABLE IF NOT EXISTS nationalities (
+0018    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0019    country_code VARCHAR(8) NOT NULL UNIQUE,
+0020    name_zh VARCHAR(120) NOT NULL,
+0021    name_en VARCHAR(120) NOT NULL,
+0022    continent VARCHAR(60),
+0023    primary_language VARCHAR(80),
+0024    timezone VARCHAR(80)
+0025  );
+0026  
+0027  CREATE TABLE IF NOT EXISTS teachers (
+0028    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0029    user_id BIGINT UNIQUE,
+0030    teacher_no VARCHAR(64) NOT NULL UNIQUE,
+0031    name VARCHAR(120) NOT NULL,
+0032    college VARCHAR(120),
+0033    phone VARCHAR(40),
+0034    email VARCHAR(120),
+0035    teacher_type ENUM('course_teacher', 'head_teacher', 'counselor', 'admin_teacher') NOT NULL DEFAULT 'course_teacher',
+0036    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+0037    CONSTRAINT fk_teachers_user FOREIGN KEY (user_id) REFERENCES users(id)
+0038  );
+0039  
+0040  CREATE TABLE IF NOT EXISTS classes (
+0041    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0042    code VARCHAR(64) NOT NULL UNIQUE,
+0043    name VARCHAR(120) NOT NULL,
+0044    college VARCHAR(120),
+0045    major VARCHAR(120),
+0046    teacher_id BIGINT,
+0047    enrollment_year INT,
+0048    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+0049    CONSTRAINT fk_classes_teacher FOREIGN KEY (teacher_id) REFERENCES teachers(id)
+0050  );
+0051  
+0052  CREATE TABLE IF NOT EXISTS students (
+0053    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0054    user_id BIGINT UNIQUE,
+0055    student_no VARCHAR(64) NOT NULL UNIQUE,
+0056    chinese_name VARCHAR(120),
+0057    english_name VARCHAR(120) NOT NULL,
+0058    gender VARCHAR(20),
+0059    birth_date DATE,
+0060    nationality_id BIGINT,
+0061    passport_no VARCHAR(80),
+0062    passport_expiry DATE,
+0063    phone VARCHAR(40),
+0064    email VARCHAR(120),
+0065    emergency_contact VARCHAR(160),
+0066    enrollment_year INT,
+0067    major VARCHAR(120),
+0068    college VARCHAR(120),
+0069    class_id BIGINT,
+0070    status ENUM('active', 'suspended', 'withdrawn', 'graduated', 'delayed') NOT NULL DEFAULT 'active',
+0071    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+0072    CONSTRAINT fk_students_user FOREIGN KEY (user_id) REFERENCES users(id),
+0073    CONSTRAINT fk_students_nationality FOREIGN KEY (nationality_id) REFERENCES nationalities(id),
+0074    CONSTRAINT fk_students_class FOREIGN KEY (class_id) REFERENCES classes(id)
+0075  );
+0076  
+0077  CREATE TABLE IF NOT EXISTS dormitories (
+0078    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0079    building VARCHAR(120) NOT NULL,
+0080    room_no VARCHAR(60) NOT NULL,
+0081    bed_no VARCHAR(60) NOT NULL,
+0082    student_id BIGINT,
+0083    check_in_date DATE,
+0084    check_out_date DATE,
+0085    status ENUM('available', 'occupied', 'reserved', 'maintenance') NOT NULL DEFAULT 'available',
+0086    CONSTRAINT fk_dormitories_student FOREIGN KEY (student_id) REFERENCES students(id)
+0087  );
+0088  
+0089  CREATE TABLE IF NOT EXISTS visas (
+0090    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0091    student_id BIGINT NOT NULL,
+0092    visa_type VARCHAR(80) NOT NULL,
+0093    visa_no VARCHAR(120),
+0094    issue_date DATE,
+0095    expiry_date DATE NOT NULL,
+0096    residence_permit_no VARCHAR(120),
+0097    document_url VARCHAR(255),
+0098    status ENUM('valid', 'expiring', 'expired', 'renewing') NOT NULL DEFAULT 'valid',
+0099    CONSTRAINT fk_visas_student FOREIGN KEY (student_id) REFERENCES students(id)
+0100  );
+0101  
+0102  CREATE TABLE IF NOT EXISTS study_records (
+0103    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0104    student_id BIGINT NOT NULL,
+0105    course_code VARCHAR(80),
+0106    course_name VARCHAR(160) NOT NULL,
+0107    attendance_rate DECIMAL(5,2),
+0108    homework_status VARCHAR(120),
+0109    class_performance VARCHAR(255),
+0110    warning_level ENUM('none', 'notice', 'warning', 'serious') NOT NULL DEFAULT 'none',
+0111    teacher_id BIGINT,
+0112    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+0113    CONSTRAINT fk_study_records_student FOREIGN KEY (student_id) REFERENCES students(id),
+0114    CONSTRAINT fk_study_records_teacher FOREIGN KEY (teacher_id) REFERENCES teachers(id)
+0115  );
+0116  
+0117  CREATE TABLE IF NOT EXISTS external_schools (
+0118    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0119    country_code VARCHAR(8),
+0120    name VARCHAR(180) NOT NULL,
+0121    contact_name VARCHAR(120),
+0122    contact_email VARCHAR(120),
+0123    integration_type ENUM('api', 'excel', 'csv', 'manual', 'scheduled_sync') NOT NULL DEFAULT 'manual',
+0124    endpoint_url VARCHAR(255),
+0125    status ENUM('active', 'disabled') NOT NULL DEFAULT 'active'
+0126  );
+0127  
+0128  CREATE TABLE IF NOT EXISTS grade_rules (
+0129    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0130    school_id BIGINT,
+0131    country_code VARCHAR(8),
+0132    name VARCHAR(160) NOT NULL,
+0133    version VARCHAR(40) NOT NULL,
+0134    gpa_scale DECIMAL(4,2) NOT NULL DEFAULT 4.00,
+0135    credit_ratio DECIMAL(6,3) NOT NULL DEFAULT 1.000,
+0136    pass_score DECIMAL(5,2) NOT NULL DEFAULT 60.00,
+0137    status ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
+0138    effective_from DATE,
+0139    effective_to DATE,
+0140    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+0141    CONSTRAINT fk_grade_rules_school FOREIGN KEY (school_id) REFERENCES external_schools(id)
+0142  );
+0143  
+0144  CREATE TABLE IF NOT EXISTS grade_records (
+0145    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+0146    student_id BIGINT NOT NULL,
+0147    course_code VARCHAR(80),
+0148    course_name VARCHAR(160),
+0149    source_school_id BIGINT,
+0150    source_country_code VARCHAR(8),
+0151    original_grade VARCHAR(40),
+0152    original_type ENUM('percent', 'letter', 'gpa', 'pass_fail'),
+0153    original_credit DECIMAL(6,2) DEFAULT 0,
+0154    adapted_score DECIMAL(5,2),
+0155    adapted_gpa DECIMAL(4,2),
+0156    adapted_credit DECIMAL(6,2),
+0157    passed TINYINT(1),
+0158    rule_version VARCHAR(40),
+0159    adapt_status ENUM('pending', 'success', 'exception') NOT NULL DEFAULT 'pending',
+0160    exception_reason VARCHAR(255),
+0161    audit_status ENUM('pending', 'approved', 'rejected', 'archived') NOT NULL DEFAULT 'pending',
+0162    audited_by BIGINT,
+0163    audited_at TIMESTAMP NULL,
+0164    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+0165    CONSTRAINT fk_grade_records_student FOREIGN KEY (student_id) REFERENCES students(id),
+0166    CONSTRAINT fk_grade_records_school FOREIGN KEY (source_school_id) REFERENCES external_schools(id),
+0167    CONSTRAINT fk_grade_records_auditor FOREIGN KEY (audited_by) REFERENCES users(id)
+0168  );
+0169  
+0170  INSERT IGNORE INTO users (id, username, password_hash, role, display_name)
+0171  VALUES
+0172    (1, 'admin', '***BCRYPT_HASH***', 'admin', 'System Admin'),
+0173    (2, 'teacher01', '***BCRYPT_HASH***', 'teacher', 'Teacher Demo'),
+0174    (3, 'student01', '***BCRYPT_HASH***', 'student', 'Student Demo');
+0175  
+0176  UPDATE users
+0177  SET password_hash = '***BCRYPT_HASH***'
+0178  WHERE username IN ('admin', 'teacher01', 'student01');
+0179  
+0180  INSERT IGNORE INTO nationalities (id, country_code, name_zh, name_en, continent, primary_language, timezone)
+0181  VALUES
+0182    (1, 'TH', '泰国', 'Thailand', 'Asia', 'Thai', 'Asia/Bangkok'),
+0183    (2, 'VN', '越南', 'Vietnam', 'Asia', 'Vietnamese', 'Asia/Ho_Chi_Minh'),
+0184    (3, 'MY', '马来西亚', 'Malaysia', 'Asia', 'Malay', 'Asia/Kuala_Lumpur'),
+0185    (4, 'ID', '印度尼西亚', 'Indonesia', 'Asia', 'Indonesian', 'Asia/Jakarta');
+0186  
+0187  INSERT IGNORE INTO teachers (id, user_id, teacher_no, name, college, phone, email, teacher_type)
+0188  VALUES (1, 2, 'T2026001', 'Teacher Demo', 'International Education College', '138********', '***@example.com', 'head_teacher');
+0189  
+0190  INSERT IGNORE INTO classes (id, code, name, college, major, teacher_id, enrollment_year)
+0191  VALUES (1, 'ISE-2026-A', 'International Student Class A', 'International Education College', 'Chinese Language', 1, 2026);
+0192  
+0193  INSERT IGNORE INTO students
+0194    (id, user_id, student_no, chinese_name, english_name, gender, birth_date, nationality_id,
+0195     passport_no, passport_expiry, phone, email, emergency_contact, enrollment_year, major, college, class_id, status)
+0196  VALUES
+0197    (1, 3, 'S2026001', '学生示例', 'Student Demo', 'Female', '2004-08-01', 1,
+0198     'P000001', '2029-08-01', '139********', '***@example.com', 'Family +66 000000', 2026,
+0199     'Chinese Language', 'International Education College', 1, 'active');
+0200  
+0201  INSERT IGNORE INTO external_schools (id, country_code, name, integration_type, status)
+0202  VALUES
+0203    (1, 'TH', 'Demo Partner University Thailand', 'api', 'active'),
+0204    (2, 'VN', 'Demo Partner College Vietnam', 'excel', 'active');
+0205  
+0206  INSERT IGNORE INTO grade_rules (id, school_id, country_code, name, version, gpa_scale, credit_ratio, pass_score, status)
+0207  VALUES
+0208    (1, NULL, NULL, 'Default international grade adapter', 'default-v1', 4.00, 1.000, 60.00, 'active'),
+0209    (2, 1, 'TH', 'Thailand partner GPA rule', 'TH-GPA-2026', 4.00, 1.000, 60.00, 'active');
+</code></pre>
+<h3>2.15 文件：<code>public/index.html</code></h3>
+<p>文件职责：H5 前台页面结构，包含登录、工作台、角色菜单和内容区域。</p>
+<p>所属模块：前端页面。</p>
+<pre><code class="language-html">0001  &lt;!doctype html&gt;
+0002  &lt;html lang=&quot;zh-CN&quot;&gt;
+0003    &lt;head&gt;
+0004      &lt;meta charset=&quot;UTF-8&quot; /&gt;
+0005      &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+0006      &lt;title&gt;International Student Information Platform&lt;/title&gt;
+0007      &lt;link rel=&quot;icon&quot; href=&quot;/favicon.svg&quot; type=&quot;image/svg+xml&quot; /&gt;
+0008      &lt;link rel=&quot;stylesheet&quot; href=&quot;/styles.css&quot; /&gt;
+0009    &lt;/head&gt;
+0010    &lt;body&gt;
+0011      &lt;header class=&quot;topbar&quot;&gt;
+0012        &lt;div&gt;
+0013          &lt;p class=&quot;eyebrow&quot; data-i18n=&quot;systemTag&quot;&gt;V1.0 留学生信息管理系统&lt;/p&gt;
+0014          &lt;h1 data-i18n=&quot;systemName&quot;&gt;面向国际留学生的信息管理系统&lt;/h1&gt;
+0015        &lt;/div&gt;
+0016        &lt;div class=&quot;toolbar&quot;&gt;
+0017          &lt;button class=&quot;icon-button&quot; id=&quot;langToggle&quot; title=&quot;Language&quot;&gt;中 / EN&lt;/button&gt;
+0018          &lt;button class=&quot;ghost-button hidden&quot; id=&quot;logoutBtn&quot; data-i18n=&quot;logout&quot;&gt;退出&lt;/button&gt;
+0019        &lt;/div&gt;
+0020      &lt;/header&gt;
+0021  
+0022      &lt;main class=&quot;layout&quot;&gt;
+0023        &lt;section class=&quot;login-panel&quot; id=&quot;loginPanel&quot;&gt;
+0024          &lt;div class=&quot;panel-title&quot;&gt;
+0025            &lt;h2 data-i18n=&quot;loginTitle&quot;&gt;用户登录&lt;/h2&gt;
+0026            &lt;p data-i18n=&quot;loginHint&quot;&gt;学生、教师和管理员使用统一入口登录。&lt;/p&gt;
+0027          &lt;/div&gt;
+0028          &lt;form id=&quot;loginForm&quot; class=&quot;form-grid&quot;&gt;
+0029            &lt;label&gt;
+0030              &lt;span data-i18n=&quot;username&quot;&gt;账号&lt;/span&gt;
+0031              &lt;input name=&quot;username&quot; autocomplete=&quot;username&quot; value=&quot;student01&quot; required /&gt;
+0032            &lt;/label&gt;
+0033            &lt;label&gt;
+0034              &lt;span data-i18n=&quot;password&quot;&gt;密码&lt;/span&gt;
+0035              &lt;input name=&quot;password&quot; type=&quot;password&quot; autocomplete=&quot;current-password&quot; value=&quot;******&quot; required /&gt;
+0036            &lt;/label&gt;
+0037            &lt;button class=&quot;primary-button&quot; type=&quot;submit&quot; data-i18n=&quot;loginButton&quot;&gt;登录系统&lt;/button&gt;
+0038            &lt;p class=&quot;message&quot; id=&quot;loginMessage&quot;&gt;&lt;/p&gt;
+0039          &lt;/form&gt;
+0040          &lt;div class=&quot;demo-users&quot;&gt;
+0041            &lt;span data-i18n=&quot;demoUsers&quot;&gt;演示账号&lt;/span&gt;
+0042            &lt;code&gt;student01 / ******&lt;/code&gt;
+0043            &lt;code&gt;teacher01 / ******&lt;/code&gt;
+0044            &lt;code&gt;student001 / ******&lt;/code&gt;
+0045            &lt;code&gt;admin / ******&lt;/code&gt;
+0046          &lt;/div&gt;
+0047        &lt;/section&gt;
+0048  
+0049        &lt;section class=&quot;workspace hidden&quot; id=&quot;workspace&quot;&gt;
+0050          &lt;nav class=&quot;tabs&quot; id=&quot;tabs&quot;&gt;&lt;/nav&gt;
+0051  
+0052          &lt;section class=&quot;summary-grid&quot; id=&quot;summaryGrid&quot;&gt;&lt;/section&gt;
+0053  
+0054          &lt;section class=&quot;content-grid&quot;&gt;
+0055            &lt;article class=&quot;surface&quot; id=&quot;primaryView&quot;&gt;&lt;/article&gt;
+0056            &lt;aside class=&quot;surface compact&quot; id=&quot;sideView&quot;&gt;&lt;/aside&gt;
+0057          &lt;/section&gt;
+0058        &lt;/section&gt;
+0059      &lt;/main&gt;
+0060  
+0061      &lt;script src=&quot;/app.js&quot;&gt;&lt;/script&gt;
+0062    &lt;/body&gt;
+0063  &lt;/html&gt;
+</code></pre>
+<h3>2.16 文件：<code>public/styles.css</code></h3>
+<p>文件职责：H5 与管理端页面样式，包含移动端和桌面端布局。</p>
+<p>所属模块：前端样式。</p>
+<pre><code class="language-css">0001  :root {
+0002    color-scheme: light;
+0003    --bg: #f6f7f9;
+0004    --surface: #ffffff;
+0005    --surface-strong: #eef4f1;
+0006    --line: #d8dee6;
+0007    --text: #1f2933;
+0008    --muted: #64707d;
+0009    --accent: #1f7a6d;
+0010    --accent-dark: #14594f;
+0011    --warning: #b45f06;
+0012    --danger: #b42318;
+0013    --blue: #2f5f98;
+0014    --shadow: 0 14px 34px rgba(21, 39, 60, 0.08);
+0015  }
+0016  
+0017  * {
+0018    box-sizing: border-box;
+0019  }
+0020  
+0021  body {
+0022    margin: 0;
+0023    min-height: 100vh;
+0024    background: var(--bg);
+0025    color: var(--text);
+0026    font-family: Arial, &quot;Microsoft YaHei&quot;, sans-serif;
+0027  }
+0028  
+0029  button,
+0030  input,
+0031  select {
+0032    font: inherit;
+0033  }
+0034  
+0035  .topbar {
+0036    display: flex;
+0037    align-items: center;
+0038    justify-content: space-between;
+0039    gap: 24px;
+0040    padding: 24px clamp(16px, 4vw, 48px);
+0041    background: #ffffff;
+0042    border-bottom: 1px solid var(--line);
+0043  }
+0044  
+0045  .eyebrow {
+0046    margin: 0 0 6px;
+0047    color: var(--accent);
+0048    font-size: 13px;
+0049    font-weight: 700;
+0050  }
+0051  
+0052  h1,
+0053  h2,
+0054  h3,
+0055  p {
+0056    margin-top: 0;
+0057  }
+0058  
+0059  h1 {
+0060    margin-bottom: 0;
+0061    font-size: clamp(22px, 3vw, 34px);
+0062  }
+0063  
+0064  h2 {
+0065    margin-bottom: 8px;
+0066    font-size: 22px;
+0067  }
+0068  
+0069  h3 {
+0070    margin-bottom: 12px;
+0071    font-size: 17px;
+0072  }
+0073  
+0074  .toolbar,
+0075  .tabs,
+0076  .actions {
+0077    display: flex;
+0078    align-items: center;
+0079    gap: 10px;
+0080    flex-wrap: wrap;
+0081  }
+0082  
+0083  .layout {
+0084    width: min(1180px, calc(100% - 32px));
+0085    margin: 28px auto 48px;
+0086  }
+0087  
+0088  .login-panel,
+0089  .surface {
+0090    background: var(--surface);
+0091    border: 1px solid var(--line);
+0092    border-radius: 8px;
+0093    box-shadow: var(--shadow);
+0094  }
+0095  
+0096  .login-panel {
+0097    width: min(520px, 100%);
+0098    padding: 26px;
+0099  }
+0100  
+0101  .panel-title p,
+0102  .muted {
+0103    color: var(--muted);
+0104  }
+0105  
+0106  .form-grid {
+0107    display: grid;
+0108    gap: 16px;
+0109  }
+0110  
+0111  label {
+0112    display: grid;
+0113    gap: 6px;
+0114    color: var(--muted);
+0115    font-size: 14px;
+0116  }
+0117  
+0118  input,
+0119  select {
+0120    width: 100%;
+0121    min-height: 42px;
+0122    padding: 9px 11px;
+0123    border: 1px solid var(--line);
+0124    border-radius: 6px;
+0125    background: #ffffff;
+0126    color: var(--text);
+0127  }
+0128  
+0129  .primary-button,
+0130  .ghost-button,
+0131  .icon-button,
+0132  .tab-button {
+0133    min-height: 40px;
+0134    border-radius: 6px;
+0135    border: 1px solid transparent;
+0136    cursor: pointer;
+0137  }
+0138  
+0139  .primary-button {
+0140    background: var(--accent);
+0141    color: #ffffff;
+0142    font-weight: 700;
+0143  }
+0144  
+0145  .primary-button:hover {
+0146    background: var(--accent-dark);
+0147  }
+0148  
+0149  .ghost-button,
+0150  .icon-button,
+0151  .tab-button {
+0152    background: #ffffff;
+0153    border-color: var(--line);
+0154    color: var(--text);
+0155  }
+0156  
+0157  .icon-button {
+0158    min-width: 76px;
+0159  }
+0160  
+0161  .tab-button.active {
+0162    background: var(--surface-strong);
+0163    border-color: var(--accent);
+0164    color: var(--accent-dark);
+0165    font-weight: 700;
+0166  }
+0167  
+0168  .message {
+0169    min-height: 20px;
+0170    margin-bottom: 0;
+0171    color: var(--danger);
+0172  }
+0173  
+0174  .demo-users {
+0175    display: grid;
+0176    gap: 8px;
+0177    margin-top: 18px;
+0178    color: var(--muted);
+0179    font-size: 13px;
+0180  }
+0181  
+0182  code {
+0183    display: inline-block;
+0184    width: fit-content;
+0185    padding: 4px 7px;
+0186    background: #eef1f4;
+0187    border-radius: 5px;
+0188    color: #27313d;
+0189  }
+0190  
+0191  .workspace {
+0192    display: grid;
+0193    gap: 18px;
+0194  }
+0195  
+0196  .summary-grid {
+0197    display: grid;
+0198    grid-template-columns: repeat(4, minmax(0, 1fr));
+0199    gap: 14px;
+0200  }
+0201  
+0202  .metric {
+0203    background: var(--surface);
+0204    border: 1px solid var(--line);
+0205    border-radius: 8px;
+0206    padding: 18px;
+0207  }
+0208  
+0209  .metric strong {
+0210    display: block;
+0211    margin-top: 8px;
+0212    font-size: 28px;
+0213  }
+0214  
+0215  .content-grid {
+0216    display: grid;
+0217    grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr);
+0218    gap: 18px;
+0219  }
+0220  
+0221  .surface {
+0222    padding: 20px;
+0223  }
+0224  
+0225  .compact {
+0226    align-self: start;
+0227  }
+0228  
+0229  .data-table {
+0230    width: 100%;
+0231    border-collapse: collapse;
+0232    font-size: 14px;
+0233  }
+0234  
+0235  .data-table th,
+0236  .data-table td {
+0237    padding: 11px 9px;
+0238    border-bottom: 1px solid var(--line);
+0239    text-align: left;
+0240    vertical-align: top;
+0241  }
+0242  
+0243  .data-table th {
+0244    color: var(--muted);
+0245    font-size: 13px;
+0246  }
+0247  
+0248  .status {
+0249    display: inline-flex;
+0250    align-items: center;
+0251    min-height: 24px;
+0252    padding: 2px 8px;
+0253    border-radius: 999px;
+0254    background: #e7f3ef;
+0255    color: var(--accent-dark);
+0256    font-size: 12px;
+0257    font-weight: 700;
+0258  }
+0259  
+0260  .status.warning {
+0261    background: #fff4df;
+0262    color: var(--warning);
+0263  }
+0264  
+0265  .status.danger {
+0266    background: #fee4e2;
+0267    color: var(--danger);
+0268  }
+0269  
+0270  .profile-list {
+0271    display: grid;
+0272    grid-template-columns: repeat(2, minmax(0, 1fr));
+0273    gap: 12px;
+0274  }
+0275  
+0276  .profile-list div {
+0277    padding: 12px;
+0278    background: #f9fafb;
+0279    border: 1px solid var(--line);
+0280    border-radius: 6px;
+0281  }
+0282  
+0283  .profile-list span {
+0284    display: block;
+0285    margin-bottom: 4px;
+0286    color: var(--muted);
+0287    font-size: 12px;
+0288  }
+0289  
+0290  .hidden {
+0291    display: none !important;
+0292  }
+0293  
+0294  @media (max-width: 820px) {
+0295    .topbar {
+0296      align-items: flex-start;
+0297      flex-direction: column;
+0298    }
+0299  
+0300    .summary-grid,
+0301    .content-grid,
+0302    .profile-list {
+0303      grid-template-columns: 1fr;
+0304    }
+0305  
+0306    .login-panel {
+0307      padding: 20px;
+0308    }
+0309  }
+</code></pre>
+<h3>2.17 文件：<code>public/app.js</code></h3>
+<p>文件职责：前端交互逻辑，包含国际化、登录、菜单切换和接口调用。</p>
+<p>所属模块：前端逻辑。</p>
+<pre><code class="language-javascript">0001  const i18n = {
+0002    zh: {
+0003      systemTag: 'V1.0 留学生信息管理系统',
+0004      systemName: '面向国际留学生的信息管理系统',
+0005      logout: '退出',
+0006      loginTitle: '用户登录',
+0007      loginHint: '学生、教师和管理员使用统一入口登录。',
+0008      username: '账号',
+0009      password: '密码',
+0010      loginButton: '登录系统',
+0011      demoUsers: '演示账号',
+0012      profile: '个人档案',
+0013      grades: '成绩适配',
+0014      learning: '学习情况',
+0015      teacher: '教师管理',
+0016      students: '学生管理',
+0017      dashboard: '统计分析',
+0018      risks: '风险查询',
+0019      source: '来源',
+0020      status: '状态',
+0021      adaptedScore: '适配成绩',
+0022      adaptedGpa: '适配 GPA',
+0023      auditStatus: '审核状态',
+0024      noData: '暂无数据',
+0025      studentCount: '学生人数',
+0026      teacherCount: '教师人数',
+0027      visaWarnings: '签证预警',
+0028      gradeExceptions: '成绩异常',
+0029      loginFailed: '登录失败，请检查账号或密码。',
+0030      loadFailed: '数据加载失败，请确认后台和数据库已启动。',
+0031      studentOnly: '学生端支持中英文切换并仅展示本人数据。',
+0032      teacherScope: '教师端用于班级、课程、成绩录入与学习预警管理。',
+0033      adminScope: '管理员端用于档案、国籍、班级、住宿、签证、教师、成绩规则和统计分析管理。'
+0034    },
+0035    en: {
+0036      systemTag: 'V1.0 International Student Information System',
+0037      systemName: 'Information Management System for International Students',
+0038      logout: 'Logout',
+0039      loginTitle: 'Sign In',
+0040      loginHint: 'Students, teachers, and administrators use the same portal.',
+0041      username: 'Username',
+0042      password: 'Password',
+0043      loginButton: 'Sign In',
+0044      demoUsers: 'Demo accounts',
+0045      profile: 'Profile',
+0046      grades: 'Grade Adapter',
+0047      learning: 'Learning',
+0048      teacher: 'Teacher Management',
+0049      students: 'Student Management',
+0050      dashboard: 'Analytics',
+0051      risks: 'Risk Query',
+0052      source: 'Source',
+0053      status: 'Status',
+0054      adaptedScore: 'Adapted Score',
+0055      adaptedGpa: 'Adapted GPA',
+0056      auditStatus: 'Audit Status',
+0057      noData: 'No data',
+0058      studentCount: 'Students',
+0059      teacherCount: 'Teachers',
+0060      visaWarnings: 'Visa Alerts',
+0061      gradeExceptions: 'Grade Exceptions',
+0062      loginFailed: 'Sign-in failed. Check your username or password.',
+0063      loadFailed: 'Failed to load data. Confirm the API and database are running.',
+0064      studentOnly: 'The student client supports Chinese and English and only shows personal data.',
+0065      teacherScope: 'The teacher portal supports classes, courses, grade entry, and learning alerts.',
+0066      adminScope: 'The admin portal manages profiles, nationalities, classes, dormitories, visas, teachers, grade rules, and analytics.'
+0067    }
+0068  };
+0069  
+0070  let lang = localStorage.getItem('lang') || 'zh';
+0071  let session = JSON.parse(localStorage.getItem('session') || 'null');
+0072  let currentTab = 'profile';
+0073  
+0074  const loginPanel = document.querySelector('#loginPanel');
+0075  const workspace = document.querySelector('#workspace');
+0076  const tabs = document.querySelector('#tabs');
+0077  const summaryGrid = document.querySelector('#summaryGrid');
+0078  const primaryView = document.querySelector('#primaryView');
+0079  const sideView = document.querySelector('#sideView');
+0080  const loginMessage = document.querySelector('#loginMessage');
+0081  const logoutBtn = document.querySelector('#logoutBtn');
+0082  
+0083  function t(key) {
+0084    return i18n[lang][key] || key;
+0085  }
+0086  
+0087  function applyLanguage() {
+0088    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+0089    document.querySelectorAll('[data-i18n]').forEach((node) =&gt; {
+0090      node.textContent = t(node.dataset.i18n);
+0091    });
+0092    if (session) renderApp();
+0093  }
+0094  
+0095  async function api(path, options = {}) {
+0096    const headers = {
+0097      'Content-Type': 'application/json',
+0098      ...(options.headers || {})
+0099    };
+0100    if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+0101    const response = await fetch(path, { ...options, headers });
+0102    if (!response.ok) {
+0103      const body = await response.json().catch(() =&gt; ({}));
+0104      throw new Error(body.message || response.statusText);
+0105    }
+0106    return response.json();
+0107  }
+0108  
+0109  function setLoggedIn(value) {
+0110    loginPanel.classList.toggle('hidden', value);
+0111    workspace.classList.toggle('hidden', !value);
+0112    logoutBtn.classList.toggle('hidden', !value);
+0113  }
+0114  
+0115  function roleTabs(role) {
+0116    if (role === 'student') return ['profile', 'grades', 'learning'];
+0117    if (role === 'teacher') return ['dashboard', 'students', 'grades', 'risks'];
+0118    return ['dashboard', 'students', 'teacher', 'grades', 'risks'];
+0119  }
+0120  
+0121  function renderTabs() {
+0122    tabs.innerHTML = roleTabs(session.user.role)
+0123      .map((tab) =&gt; `&lt;button class=&quot;tab-button ${tab === currentTab ? 'active' : ''}&quot; data-tab=&quot;${tab}&quot;&gt;${t(tab)}&lt;/button&gt;`)
+0124      .join('');
+0125    tabs.querySelectorAll('button').forEach((button) =&gt; {
+0126      button.addEventListener('click', () =&gt; {
+0127        currentTab = button.dataset.tab;
+0128        renderApp();
+0129      });
+0130    });
+0131  }
+0132  
+0133  function metric(label, value, tone = '') {
+0134    return `&lt;div class=&quot;metric&quot;&gt;&lt;span class=&quot;muted&quot;&gt;${label}&lt;/span&gt;&lt;strong class=&quot;${tone}&quot;&gt;${value}&lt;/strong&gt;&lt;/div&gt;`;
+0135  }
+0136  
+0137  function table(headers, rows) {
+0138    if (!rows.length) return `&lt;p class=&quot;muted&quot;&gt;${t('noData')}&lt;/p&gt;`;
+0139    return `
+0140      &lt;table class=&quot;data-table&quot;&gt;
+0141        &lt;thead&gt;&lt;tr&gt;${headers.map((item) =&gt; `&lt;th&gt;${item}&lt;/th&gt;`).join('')}&lt;/tr&gt;&lt;/thead&gt;
+0142        &lt;tbody&gt;${rows.join('')}&lt;/tbody&gt;
+0143      &lt;/table&gt;
+0144    `;
+0145  }
+0146  
+0147  async function renderDashboard() {
+0148    const data = await api('/api/management/dashboard');
+0149    summaryGrid.innerHTML = [
+0150      metric(t('studentCount'), data.students),
+0151      metric(t('teacherCount'), data.teachers),
+0152      metric(t('visaWarnings'), data.visaWarnings, 'warning'),
+0153      metric(t('gradeExceptions'), data.gradeExceptions, 'danger')
+0154    ].join('');
+0155    primaryView.innerHTML = `&lt;h2&gt;${t('dashboard')}&lt;/h2&gt;&lt;p class=&quot;muted&quot;&gt;${session.user.role === 'admin' ? t('adminScope') : t('teacherScope')}&lt;/p&gt;`;
+0156    sideView.innerHTML = `&lt;h3&gt;${t('status')}&lt;/h3&gt;&lt;p class=&quot;status&quot;&gt;${session.user.displayName}&lt;/p&gt;`;
+0157  }
+0158  
+0159  async function renderStudentProfile() {
+0160    const me = await api('/api/students/me');
+0161    summaryGrid.innerHTML = [
+0162      metric(t('profile'), me?.student_no || '-'),
+0163      metric(lang === 'zh' ? '国籍' : 'Nationality', lang === 'zh' ? me?.nationality_zh || '-' : me?.nationality_en || '-'),
+0164      metric(lang === 'zh' ? '班级' : 'Class', me?.class_name || '-'),
+0165      metric(t('status'), me?.status || '-')
+0166    ].join('');
+0167    primaryView.innerHTML = `
+0168      &lt;h2&gt;${t('profile')}&lt;/h2&gt;
+0169      &lt;div class=&quot;profile-list&quot;&gt;
+0170        &lt;div&gt;&lt;span&gt;${lang === 'zh' ? '中文名' : 'Chinese Name'}&lt;/span&gt;${me?.chinese_name || '-'}&lt;/div&gt;
+0171        &lt;div&gt;&lt;span&gt;${lang === 'zh' ? 'English Name' : '英文名'}&lt;/span&gt;${me?.english_name || '-'}&lt;/div&gt;
+0172        &lt;div&gt;&lt;span&gt;${lang === 'zh' ? '护照号' : 'Passport No.'}&lt;/span&gt;${me?.passport_no || '-'}&lt;/div&gt;
+0173        &lt;div&gt;&lt;span&gt;${lang === 'zh' ? '护照有效期' : 'Passport Expiry'}&lt;/span&gt;${me?.passport_expiry || '-'}&lt;/div&gt;
+0174        &lt;div&gt;&lt;span&gt;${lang === 'zh' ? '专业' : 'Major'}&lt;/span&gt;${me?.major || '-'}&lt;/div&gt;
+0175        &lt;div&gt;&lt;span&gt;${lang === 'zh' ? '邮箱' : 'Email'}&lt;/span&gt;${me?.email || '-'}&lt;/div&gt;
+0176      &lt;/div&gt;
+0177    `;
+0178    sideView.innerHTML = `&lt;h3&gt;${t('learning')}&lt;/h3&gt;&lt;p class=&quot;muted&quot;&gt;${t('studentOnly')}&lt;/p&gt;`;
+0179  }
+0180  
+0181  async function renderStudentGrades(studentId) {
+0182    const id = studentId || (await api('/api/students/me'))?.id;
+0183    const grades = id ? await api(`/api/grades/student/${id}`) : [];
+0184    summaryGrid.innerHTML = [
+0185      metric(t('grades'), grades.length),
+0186      metric(t('adaptedGpa'), grades[0]?.adapted_gpa || '-'),
+0187      metric(t('auditStatus'), grades[0]?.audit_status || '-'),
+0188      metric(t('status'), grades[0]?.adapt_status || '-')
+0189    ].join('');
+0190    primaryView.innerHTML = `
+0191      &lt;h2&gt;${t('grades')}&lt;/h2&gt;
+0192      ${table(
+0193        [lang === 'zh' ? '课程' : 'Course', t('source'), lang === 'zh' ? '原始成绩' : 'Original', t('adaptedScore'), t('adaptedGpa'), t('auditStatus')],
+0194        grades.map(
+0195          (item) =&gt; `&lt;tr&gt;
+0196            &lt;td&gt;${item.course_name || '-'}&lt;/td&gt;
+0197            &lt;td&gt;${item.source_school_name || item.source_country_code || '-'}&lt;/td&gt;
+0198            &lt;td&gt;${item.original_grade || '-'}&lt;/td&gt;
+0199            &lt;td&gt;${item.adapted_score || '-'}&lt;/td&gt;
+0200            &lt;td&gt;${item.adapted_gpa || '-'}&lt;/td&gt;
+0201            &lt;td&gt;&lt;span class=&quot;status&quot;&gt;${item.audit_status}&lt;/span&gt;&lt;/td&gt;
+0202          &lt;/tr&gt;`
+0203        )
+0204      )}
+0205    `;
+0206    sideView.innerHTML = `&lt;h3&gt;${lang === 'zh' ? '成绩适配接口要点' : 'Adapter Notes'}&lt;/h3&gt;&lt;p class=&quot;muted&quot;&gt;${lang === 'zh' ? '系统保留原始成绩、适配成绩、规则版本、审核状态和异常原因，支持跨国家、跨学校成绩归一化。' : 'The system keeps original grades, adapted results, rule versions, audit states, and exception reasons for cross-country grade normalization.'}&lt;/p&gt;`;
+0207  }
+0208  
+0209  async function renderGradeManagement() {
+0210    const grades = await api('/api/grades');
+0211    summaryGrid.innerHTML = [
+0212      metric(t('grades'), grades.length),
+0213      metric(t('adaptedGpa'), grades[0]?.adapted_gpa || '-'),
+0214      metric(t('auditStatus'), grades[0]?.audit_status || '-'),
+0215      metric(lang === 'zh' ? '异常记录' : 'Exceptions', grades.filter((item) =&gt; item.adapt_status === 'exception').length, 'danger')
+0216    ].join('');
+0217    primaryView.innerHTML = `
+0218      &lt;h2&gt;${t('grades')}&lt;/h2&gt;
+0219      ${table(
+0220        [lang === 'zh' ? '学号' : 'Student No.', lang === 'zh' ? '学生' : 'Student', lang === 'zh' ? '课程' : 'Course', t('source'), lang === 'zh' ? '原始成绩' : 'Original', t('adaptedScore'), t('auditStatus')],
+0221        grades.map(
+0222          (item) =&gt; `&lt;tr&gt;
+0223            &lt;td&gt;${item.student_no}&lt;/td&gt;
+0224            &lt;td&gt;${item.chinese_name || item.english_name}&lt;/td&gt;
+0225            &lt;td&gt;${item.course_name || '-'}&lt;/td&gt;
+0226            &lt;td&gt;${item.source_school_name || item.source_country_code || '-'}&lt;/td&gt;
+0227            &lt;td&gt;${item.original_grade || '-'}&lt;/td&gt;
+0228            &lt;td&gt;${item.adapted_score || '-'}&lt;/td&gt;
+0229            &lt;td&gt;&lt;span class=&quot;status ${item.adapt_status === 'exception' ? 'danger' : ''}&quot;&gt;${item.audit_status}&lt;/span&gt;&lt;/td&gt;
+0230          &lt;/tr&gt;`
+0231        )
+0232      )}
+0233    `;
+0234    sideView.innerHTML = `&lt;h3&gt;${lang === 'zh' ? '成绩适配管理' : 'Grade Adaptation'}&lt;/h3&gt;&lt;p class=&quot;muted&quot;&gt;${lang === 'zh' ? '教师和管理员可查看外部学校成绩、原始成绩类型、适配分数、GPA、审核状态和异常记录，支撑跨国家、跨学校成绩统一归档。' : 'Teachers and administrators can review external school grades, original types, adapted scores, GPA, audit states, and exception records for unified archiving.'}&lt;/p&gt;`;
+0235  }
+0236  
+0237  async function renderStudents() {
+0238    const students = await api('/api/students');
+0239    summaryGrid.innerHTML = [metric(t('studentCount'), students.length), metric(t('status'), session.user.role), metric(t('grades'), '-'), metric(t('visaWarnings'), '-')].join('');
+0240    primaryView.innerHTML = `
+0241      &lt;h2&gt;${t('students')}&lt;/h2&gt;
+0242      ${table(
+0243        [lang === 'zh' ? '学号' : 'Student No.', lang === 'zh' ? '姓名' : 'Name', lang === 'zh' ? '国籍' : 'Nationality', lang === 'zh' ? '班级' : 'Class', t('status')],
+0244        students.map(
+0245          (item) =&gt; `&lt;tr&gt;
+0246            &lt;td&gt;${item.student_no}&lt;/td&gt;
+0247            &lt;td&gt;${item.chinese_name || item.english_name}&lt;/td&gt;
+0248            &lt;td&gt;${item.nationality || '-'}&lt;/td&gt;
+0249            &lt;td&gt;${item.class_name || '-'}&lt;/td&gt;
+0250            &lt;td&gt;&lt;span class=&quot;status&quot;&gt;${item.status}&lt;/span&gt;&lt;/td&gt;
+0251          &lt;/tr&gt;`
+0252        )
+0253      )}
+0254    `;
+0255    sideView.innerHTML = `&lt;h3&gt;${t('teacher')}&lt;/h3&gt;&lt;p class=&quot;muted&quot;&gt;${session.user.role === 'teacher' ? t('teacherScope') : t('adminScope')}&lt;/p&gt;`;
+0256  }
+0257  
+0258  async function renderTeachers() {
+0259    const teachers = await api('/api/teachers');
+0260    summaryGrid.innerHTML = [metric(t('teacherCount'), teachers.length), metric(t('status'), 'active'), metric(lang === 'zh' ? '权限' : 'Role', 'RBAC'), metric(lang === 'zh' ? '日志' : 'Logs', 'on')].join('');
+0261    primaryView.innerHTML = `
+0262      &lt;h2&gt;${t('teacher')}&lt;/h2&gt;
+0263      ${table(
+0264        [lang === 'zh' ? '工号' : 'Teacher No.', lang === 'zh' ? '姓名' : 'Name', lang === 'zh' ? '学院' : 'College', lang === 'zh' ? '类型' : 'Type', lang === 'zh' ? '邮箱' : 'Email'],
+0265        teachers.map(
+0266          (item) =&gt; `&lt;tr&gt;
+0267            &lt;td&gt;${item.teacher_no}&lt;/td&gt;
+0268            &lt;td&gt;${item.name}&lt;/td&gt;
+0269            &lt;td&gt;${item.college || '-'}&lt;/td&gt;
+0270            &lt;td&gt;${item.teacher_type}&lt;/td&gt;
+0271            &lt;td&gt;${item.email || '-'}&lt;/td&gt;
+0272          &lt;/tr&gt;`
+0273        )
+0274      )}
+0275    `;
+0276    sideView.innerHTML = `&lt;h3&gt;${lang === 'zh' ? '教师端权限' : 'Teacher Permissions'}&lt;/h3&gt;&lt;p class=&quot;muted&quot;&gt;${t('teacherScope')}&lt;/p&gt;`;
+0277  }
+0278  
+0279  async function renderRisks() {
+0280    const data = await api('/api/management/risks');
+0281    const summary = data.summary || {};
+0282    summaryGrid.innerHTML = [
+0283      metric(lang === 'zh' ? '签证临期' : 'Visa Expiring', summary.visa_expiring || 0, 'warning'),
+0284      metric(lang === 'zh' ? '成绩异常' : 'Grade Exceptions', summary.grade_exception || 0, 'danger'),
+0285      metric(lang === 'zh' ? '低分风险' : 'Low Scores', summary.low_score || 0, 'danger'),
+0286      metric(lang === 'zh' ? '学习预警' : 'Learning Alerts', summary.learning_warning || 0, 'warning')
+0287    ].join('');
+0288    primaryView.innerHTML = `
+0289      &lt;h2&gt;${t('risks')}&lt;/h2&gt;
+0290      ${table(
+0291        [lang === 'zh' ? '类型' : 'Type', lang === 'zh' ? '学号' : 'Student No.', lang === 'zh' ? '姓名' : 'Name', lang === 'zh' ? '日期' : 'Date', lang === 'zh' ? '详情' : 'Detail'],
+0292        (data.items || []).map(
+0293          (item) =&gt; `&lt;tr&gt;
+0294            &lt;td&gt;&lt;span class=&quot;status ${item.risk_type.includes('exception') || item.risk_type === 'low_score' ? 'danger' : 'warning'}&quot;&gt;${item.risk_type}&lt;/span&gt;&lt;/td&gt;
+0295            &lt;td&gt;${item.student_no}&lt;/td&gt;
+0296            &lt;td&gt;${item.chinese_name || item.english_name}&lt;/td&gt;
+0297            &lt;td&gt;${String(item.risk_date || '-').slice(0, 10)}&lt;/td&gt;
+0298            &lt;td&gt;${item.detail || '-'}&lt;/td&gt;
+0299          &lt;/tr&gt;`
+0300        )
+0301      )}
+0302    `;
+0303    sideView.innerHTML = `&lt;h3&gt;${t('risks')}&lt;/h3&gt;&lt;p class=&quot;muted&quot;&gt;${lang === 'zh' ? '风险查询聚合签证、成绩、学习和住宿等关键业务风险，便于教师和管理员及时处理。' : 'Risk query aggregates visa, grade, learning, and dormitory risks for teachers and administrators.'}&lt;/p&gt;`;
+0304  }
+0305  
+0306  function renderLearningPlaceholder() {
+0307    summaryGrid.innerHTML = [metric(t('learning'), '-'), metric(lang === 'zh' ? '考勤' : 'Attendance', '-'), metric(lang === 'zh' ? '预警' : 'Alerts', '-'), metric(lang === 'zh' ? '课程' : 'Courses', '-')].join('');
+0308    primaryView.innerHTML = `&lt;h2&gt;${t('learning')}&lt;/h2&gt;&lt;p class=&quot;muted&quot;&gt;${lang === 'zh' ? '学习情况模块用于展示课程、考勤、作业、课堂表现、学习预警和教师评价。' : 'The learning module shows courses, attendance, assignments, classroom performance, alerts, and teacher evaluations.'}&lt;/p&gt;`;
+0309    sideView.innerHTML = `&lt;h3&gt;${t('status')}&lt;/h3&gt;&lt;p class=&quot;status&quot;&gt;${lang === 'zh' ? '待接入数据' : 'Awaiting records'}&lt;/p&gt;`;
+0310  }
+0311  
+0312  async function renderApp() {
+0313    if (!session) return;
+0314    setLoggedIn(true);
+0315    renderTabs();
+0316    try {
+0317      if (currentTab === 'dashboard') await renderDashboard();
+0318      if (currentTab === 'profile') await renderStudentProfile();
+0319      if (currentTab === 'grades') {
+0320        if (session.user.role === 'student') await renderStudentGrades();
+0321        else await renderGradeManagement();
+0322      }
+0323      if (currentTab === 'students') await renderStudents();
+0324      if (currentTab === 'teacher') await renderTeachers();
+0325      if (currentTab === 'risks') await renderRisks();
+0326      if (currentTab === 'learning') renderLearningPlaceholder();
+0327    } catch (error) {
+0328      primaryView.innerHTML = `&lt;p class=&quot;message&quot;&gt;${t('loadFailed')}&lt;/p&gt;&lt;code&gt;${error.message}&lt;/code&gt;`;
+0329      sideView.innerHTML = '';
+0330    }
+0331  }
+0332  
+0333  document.querySelector('#langToggle').addEventListener('click', () =&gt; {
+0334    lang = lang === 'zh' ? 'en' : 'zh';
+0335    localStorage.setItem('lang', lang);
+0336    applyLanguage();
+0337  });
+0338  
+0339  document.querySelector('#loginForm').addEventListener('submit', async (event) =&gt; {
+0340    event.preventDefault();
+0341    loginMessage.textContent = '';
+0342    const form = new FormData(event.currentTarget);
+0343    try {
+0344      session = await api('/api/auth/login', {
+0345        method: 'POST',
+0346        body: JSON.stringify({
+0347          username: form.get('username'),
+0348          password: form.get('password')
+0349        })
+0350      });
+0351      localStorage.setItem('session', JSON.stringify(session));
+0352      currentTab = roleTabs(session.user.role)[0];
+0353      renderApp();
+0354    } catch (error) {
+0355      loginMessage.textContent = t('loginFailed');
+0356    }
+0357  });
+0358  
+0359  logoutBtn.addEventListener('click', () =&gt; {
+0360    session = null;
+0361    localStorage.removeItem('session');
+0362    setLoggedIn(false);
+0363  });
+0364  
+0365  applyLanguage();
+0366  if (session) {
+0367    currentTab = roleTabs(session.user.role)[0];
+0368    renderApp();
+0369  } else {
+0370    setLoggedIn(false);
+0371  }
+</code></pre>
+<h3>2.18 文件：<code>public/favicon.svg</code></h3>
+<p>文件职责：系统图标资源，属于自研轻量界面资源。</p>
+<p>所属模块：前端资源。</p>
+<pre><code class="language-xml">0001  &lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 64 64&quot;&gt;
+0002    &lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;12&quot; fill=&quot;#1f7a6d&quot;/&gt;
+0003    &lt;path d=&quot;M16 18h32v6H16zM16 29h32v6H16zM16 40h22v6H16z&quot; fill=&quot;#fff&quot;/&gt;
+0004  &lt;/svg&gt;
+</code></pre></body></html>
