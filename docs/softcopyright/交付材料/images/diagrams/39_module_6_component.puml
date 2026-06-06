@@ -1,0 +1,36 @@
+@startuml
+title 面向国际留学生的信息管理系统统计分析模块组件协作图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+component "教师、管理员页面入口" as UI
+component "统计分析模块前端逻辑" as View
+component "API Client" as Client
+component "认证权限中间件" as Auth
+component "统计分析模块业务路由" as Route
+component "业务校验与结果组装" as Service
+database "students、teachers、visas、grade_records" as DB
+UI --> View : 触发统计分析模块
+View --> Client : 组织学生数、教师数、签证预警和成绩异常统计请求
+Client --> Auth : 调用/api/management/dashboard
+Auth --> Route : 校验通过
+Route --> Service : 分发业务处理
+Service --> DB : 读写核心数据
+DB --> Service : 返回记录
+Service --> View : 返回展示结果
+@enduml

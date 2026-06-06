@@ -1,0 +1,43 @@
+@startuml
+title 面向国际留学生的信息管理系统成绩适配模块用例图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+left to right direction
+actor "学生用户" as Student
+actor "教师用户" as Teacher
+actor "管理员" as Admin
+rectangle "成绩适配模块" {
+  usecase "外部成绩录入" as UC4_0
+  usecase "规则适配" as UC4_1
+  usecase "审核和学生成绩查询" as UC4_2
+  usecase "访问grades/接口" as UC4_api
+}
+Student --> UC4_0
+Student --> UC4_1
+Student --> UC4_2
+Student --> UC4_api
+Teacher --> UC4_0
+Teacher --> UC4_1
+Teacher --> UC4_2
+Teacher --> UC4_api
+Admin --> UC4_0
+Admin --> UC4_1
+Admin --> UC4_2
+Admin --> UC4_api
+@enduml

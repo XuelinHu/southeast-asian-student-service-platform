@@ -1,0 +1,35 @@
+@startuml
+title 面向国际留学生的信息管理系统组件图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+component "H5/浏览器页面" as Web
+component "前端路由与页面组件" as Router
+component "API 请求封装" as Client
+component "Node.js/Express 服务" as Server
+component "认证与角色权限" as Auth
+component "业务路由模块" as Biz
+database "MySQL 数据库" as DB
+Web --> Router : 页面访问
+Router --> Client : 业务请求
+Client --> Server : HTTP/JSON
+Server --> Auth : 登录校验
+Auth --> Biz : 授权转发
+Biz --> DB : 数据读写
+DB --> Biz : 查询结果
+@enduml

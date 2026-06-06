@@ -1,0 +1,39 @@
+@startuml
+title 面向国际留学生的信息管理系统学生档案模块活动图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+start
+:学生、教师、管理员进入学生档案模块页面;
+:读取登录状态和页面参数;
+if (是否具备访问权限?) then (是)
+  :调用/api/students/*;
+  :后端校验请求参数;
+  :围绕students、classes、nationalities执行业务处理;
+  if (处理成功?) then (是)
+    :返回本人档案查询、学生列表和学生基础信息管理结果;
+    :页面展示业务数据和操作反馈;
+  else (否)
+    :返回错误提示;
+    :页面展示异常状态;
+  endif
+else (否)
+  :跳转登录或提示权限不足;
+endif
+stop
+@enduml

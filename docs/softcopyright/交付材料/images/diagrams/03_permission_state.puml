@@ -1,0 +1,32 @@
+@startuml
+title 面向国际留学生的信息管理系统权限状态图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+[*] --> 未登录
+未登录 --> 登录校验 : 提交账号密码
+登录校验 --> 学生会话 : 学生身份
+登录校验 --> 教师会话 : 教师身份
+登录校验 --> 管理员会话 : 管理员身份
+登录校验 --> 未登录 : 校验失败
+学生会话 --> 受保护业务 : 访问个人业务
+教师会话 --> 受保护业务 : 查看教学数据
+管理员会话 --> 管理业务 : 访问后台管理
+受保护业务 --> 未登录 : 退出登录
+管理业务 --> 未登录 : 退出登录
+@enduml

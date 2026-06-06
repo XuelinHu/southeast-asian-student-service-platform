@@ -1,0 +1,80 @@
+@startuml
+title 面向国际留学生的信息管理系统数据对象类图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+class "users" as E0 {
+  +id
+  +created_at
+  +updated_at
+}
+class "students" as E1 {
+  +id
+  +created_at
+  +updated_at
+}
+class "classes" as E2 {
+  +id
+  +created_at
+  +updated_at
+}
+class "nationalities" as E3 {
+  +id
+  +created_at
+  +updated_at
+}
+class "teachers" as E4 {
+  +id
+  +created_at
+  +updated_at
+}
+class "grade_records" as E5 {
+  +id
+  +created_at
+  +updated_at
+}
+class "grade_rules" as E6 {
+  +id
+  +created_at
+  +updated_at
+}
+class "external_schools" as E7 {
+  +id
+  +created_at
+  +updated_at
+}
+class "visas" as E8 {
+  +id
+  +created_at
+  +updated_at
+}
+class "study_records" as E9 {
+  +id
+  +created_at
+  +updated_at
+}
+E0 --> E1 : 业务关联
+E1 --> E2 : 业务关联
+E2 --> E3 : 业务关联
+E3 --> E4 : 业务关联
+E4 --> E5 : 业务关联
+E5 --> E6 : 业务关联
+E6 --> E7 : 业务关联
+E7 --> E8 : 业务关联
+E8 --> E9 : 业务关联
+@enduml

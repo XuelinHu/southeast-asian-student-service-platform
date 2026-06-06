@@ -1,581 +1,259 @@
-<!doctype html><html><head><meta charset='utf-8'><title>面向国际留学生的信息管理系统V1.0软件设计说明书</title><style>
-@page { size: A4; margin: 18mm 15mm 18mm 15mm; @top-center { content: '面向国际留学生的信息管理系统 V1.0'; } @bottom-center { content: counter(page); } }
-body { font-family: 'Noto Sans CJK SC', 'Microsoft YaHei', Arial, sans-serif; color: #1f2933; line-height: 1.65; font-size: 12px; }
-h1 { text-align: center; font-size: 24px; margin: 0 0 20px; }
-h2 { font-size: 18px; margin-top: 22px; border-bottom: 1px solid #999; padding-bottom: 4px; }
-h3 { font-size: 15px; margin-top: 16px; }
-table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; }
-th, td { border-left: none; border-right: none; border-top: 1px solid #333; border-bottom: 1px solid #999; padding: 6px 8px; text-align: left; vertical-align: top; }
-th { font-weight: 700; }
-figure { margin: 10px 0 12px; break-inside: avoid; text-align: center; }
-figure.wide { break-before: page; }
-figure.wide img { width: 100%; max-height: 145mm; object-fit: contain; }
-figure.diagram { break-inside: avoid; text-align: center; margin: 14px 0; }
-figure.diagram img { width: 92%; max-height: 155mm; object-fit: contain; }
-figure.h5 { width: 48%; display: inline-block; vertical-align: top; margin: 0 0.8%; }
-figure.h5 img { width: 100%; max-height: 160mm; object-fit: contain; border: 1px solid #ddd; }
-figcaption { text-align: center; font-size: 11px; margin-top: 5px; color: #333; }
-.h5-pair { break-before: page; break-inside: avoid; text-align: center; margin: 10px 0; }
-.caption-note { font-size: 11px; color: #333; margin: 4px 0 14px; }
-.page-break { break-before: page; }
-code { background: #f3f4f6; padding: 1px 3px; }
-</style></head><body><h1 id="v10">面向国际留学生的信息管理系统V1.0软件设计说明书</h1>
-<h2 id="1">1 引言</h2>
-<h3 id="11">1.1 编写目的</h3>
-<p>本文档用于说明面向国际留学生的信息管理系统V1.0的需求范围、系统结构、数据设计、接口设计、权限控制、运行部署和测试验证情况。系统面向国际留学生管理场景，覆盖学生登录、教师管理、学生档案、国籍、班级、住宿、签证、学习情况、统计分析、成绩对接与成绩适配等业务。文档中的运行界面截图均来自当前软件真实运行页面，用于证明系统界面、角色入口、数据展示和核心业务流程已经形成可运行的软件成果。</p>
-<h3 id="12">1.2 软件范围</h3>
-<p>本软件采用 H5 前台、Node.js 后台和 MySQL 数据库。学生端采用移动端竖屏布局，并提供中文和英文两种语言；教师端和管理端采用横向管理页面布局，提供统计分析、学生管理、教师管理、成绩适配管理和风险查询等页面。系统重点能力是将不同国家、不同学校、不同成绩体系下的原始成绩统一适配为本校标准成绩、GPA、学分和审核状态，并保留规则版本与异常原因。</p>
-<h2 id="2">2 需求分析</h2>
-<h3 id="21">2.1 功能需求</h3>
-<ol>
-<li>
-<p>用户认证需求：系统应支持学生、教师、管理员统一登录，并根据角色展示不同菜单。学生只能查看本人档案、成绩和学习情况；教师可查看学生列表、成绩适配记录和风险信息；管理员可查看统计、学生、教师、成绩和风险等管理页面。</p>
-</li>
-<li>
-<p>学生端双语需求：学生客户端应提供中文和英文两种语言。语言切换后，页面标题、按钮、菜单、表格字段和提示文字应同步切换；国籍等字段可结合数据库中的中文和英文字段显示。</p>
-</li>
-<li>
-<p>学生档案需求：系统应维护学生学号、中文名、英文名、性别、生日、国籍、护照、邮箱、电话、班级、学院、专业、学籍状态等信息，并提供按角色查询能力。</p>
-</li>
-<li>
-<p>教师管理需求：系统应维护教师工号、姓名、学院、联系方式、邮箱和教师类型，并支持管理员集中查看教师基础信息。</p>
-</li>
-<li>
-<p>成绩适配需求：系统应支持百分制、字母制、GPA 和通过/不通过制成绩输入，根据国家、学校和规则版本换算为适配成绩、GPA、适配学分和通过状态。</p>
-</li>
-<li>
-<p>风险查询需求：系统应聚合签证临期、成绩异常、低分风险、学习预警和住宿异常等风险，为教师和管理员提供集中查询入口。</p>
-</li>
-<li>
-<p>统计分析需求：系统应统计学生人数、教师人数、签证预警数量和成绩异常数量，为管理人员掌握系统运行状态提供依据。</p>
-</li>
-</ol>
-<figure class="diagram"><img src="../assets/diagrams/use_case.svg" alt="图 1 系统用例图"><figcaption>图 1 系统用例图</figcaption></figure>
-
-<p>图 1 为系统用例图，用于说明三类角色与核心功能之间的对应关系。学生角色面向移动端 H5 页面，重点使用登录、语言切换、本人档案、成绩适配结果和学习情况功能；教师角色面向教学管理，主要使用学生列表、成绩适配、统计分析和风险查询功能；管理员角色面向综合管理，使用教师管理、成绩审核、基础数据维护和风险查询功能。该图放置在需求分析章节，是为了将功能需求、角色权限和后续页面截图建立对应关系，便于评审理解系统功能边界。</p>
-<h3 id="22">2.2 非功能需求</h3>
-<p>系统应具备清晰的角色权限控制、可追溯的数据记录、可扩展的成绩规则、基础安全防护和稳定的前后端交互能力。界面设计应适配移动端学生使用场景和桌面端管理场景，H5 页面优先采用竖屏布局，管理页面优先采用横向全屏布局。</p>
-<h2 id="3">3 系统概述</h2>
-<h3 id="31">3.1 用户角色</h3>
-<p>系统用户包括学生、教师和管理员。学生使用 H5 客户端查看本人档案、学习情况和成绩适配结果；教师使用管理端查看学生、成绩和风险信息；管理员使用管理端完成学生档案、教师信息、成绩适配结果、统计分析和风险查询等管理工作。</p>
-<h3 id="32">3.2 模块结构</h3>
-<table>
-<thead>
-<tr>
-<th>模块</th>
-<th>服务角色</th>
-<th>页面或接口</th>
-<th>数据对象</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>用户认证</td>
-<td>学生、教师、管理员</td>
-<td>登录页、/api/auth/login</td>
-<td>users</td>
-</tr>
-<tr>
-<td>学生档案</td>
-<td>学生、教师、管理员</td>
-<td>个人档案、学生管理</td>
-<td>students、classes、nationalities</td>
-</tr>
-<tr>
-<td>教师管理</td>
-<td>管理员</td>
-<td>教师管理</td>
-<td>teachers、users</td>
-</tr>
-<tr>
-<td>成绩适配</td>
-<td>学生、教师、管理员</td>
-<td>成绩适配、成绩管理</td>
-<td>grade_records、grade_rules、external_schools</td>
-</tr>
-<tr>
-<td>风险查询</td>
-<td>教师、管理员</td>
-<td>风险查询</td>
-<td>visas、grade_records、study_records、dormitories</td>
-</tr>
-<tr>
-<td>统计分析</td>
-<td>教师、管理员</td>
-<td>统计分析</td>
-<td>students、teachers、visas、grade_records</td>
-</tr>
-</tbody>
-</table>
-<h2 id="4">4 总体设计</h2>
-<h3 id="41">4.1 技术架构</h3>
-<p>系统采用浏览器前端、Node.js 服务端和 MySQL 数据库的三层结构。前端由静态 H5 页面、CSS 和 JavaScript 组成，通过 Fetch 调用后端 REST API。后端采用 Express 框架，负责认证、权限校验、业务查询、成绩适配和风险聚合。数据库采用 MySQL，保存用户、学生、教师、班级、签证、住宿、学习记录、外部学校、成绩规则和成绩记录等结构化数据。</p>
-<figure class="diagram"><img src="../assets/diagrams/system_architecture.svg" alt="图 2 系统架构图"><figcaption>图 2 系统架构图</figcaption></figure>
-
-<p>图 2 为系统架构图，用于说明软件运行时的三层结构和模块调用关系。浏览器客户端包含 H5 学生端、教师端管理页面和管理员管理页面，统一通过 REST 接口访问 Node.js 服务；Node.js 服务中包含认证鉴权、学生档案、教师管理、成绩适配、统计分析和风险查询等路由；MySQL 数据库保存用户、学生、教师、签证、住宿、学习、外部学校、成绩规则和成绩记录等业务对象。该图放置在总体设计章节，用于说明系统整体部署关系、模块边界和数据访问方向。</p>
-<h3 id="42">4.2 运行界面布局规则</h3>
-<p>学生客户端按照移动端 H5 竖屏页面设计，软著插图中采用两张并排方式呈现中文和英文对照，便于说明国际化能力。教师端和管理端按照横向管理页面设计，软著插图中采用全宽展示，便于保留表格字段、统计指标和风险明细的可读性。</p>
-<h2 id="5">5 详细设计</h2>
-<h3 id="51">5.1 认证与权限设计</h3>
-<p>用户登录时提交账号和密码，后端校验用户状态和密码哈希，成功后签发令牌。前端保存登录会话，并在后续接口请求中携带授权信息。后端中间件根据角色限制接口访问范围，学生只能访问本人档案和本人成绩，教师与管理员可访问学生列表、成绩列表、风险查询和统计分析。</p>
-<h3 id="52">5.2 成绩适配设计</h3>
-<p>成绩适配服务接收外部学校、国家代码、课程、原始成绩类型、原始成绩和原始学分。系统根据学校和国家匹配成绩规则，支持百分制、字母制、GPA 和通过/不通过制。适配结果包括适配分数、四分制 GPA、适配学分、通过状态和规则版本。若成绩无法识别或超出范围，系统记录异常状态和异常原因。</p>
-<h3 id="53">5.3 风险查询设计</h3>
-<p>风险查询模块从多个业务表聚合风险：签证到期时间进入 60 天窗口时形成签证临期风险；成绩适配失败形成成绩异常风险；适配分低于通过线形成低分风险；学习记录中预警等级较高或考勤偏低形成学习预警；住宿状态异常或退宿日期异常形成住宿风险。查询结果包含风险类型、学生学号、姓名、日期和详情。</p>
-<h2 id="6">6 数据设计</h2>
-<h3 id="61">6.1 数据表说明</h3>
-<table>
-<thead>
-<tr>
-<th>表名</th>
-<th>中文名称</th>
-<th>主要用途</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>users</td>
-<td>用户表</td>
-<td>保存账号、密码哈希、角色、显示名称和账号状态</td>
-</tr>
-<tr>
-<td>students</td>
-<td>学生表</td>
-<td>保存国际学生档案、国籍、护照、专业、班级和学籍状态</td>
-</tr>
-<tr>
-<td>teachers</td>
-<td>教师表</td>
-<td>保存教师工号、姓名、学院、联系方式和教师类型</td>
-</tr>
-<tr>
-<td>classes</td>
-<td>班级表</td>
-<td>保存班级编码、名称、学院、专业、班主任和入学年份</td>
-</tr>
-<tr>
-<td>nationalities</td>
-<td>国籍表</td>
-<td>保存国家或地区编码、中文名、英文名、洲别、语言和时区</td>
-</tr>
-<tr>
-<td>dormitories</td>
-<td>住宿表</td>
-<td>保存宿舍楼、房间、床位、入住学生和住宿状态</td>
-</tr>
-<tr>
-<td>visas</td>
-<td>签证表</td>
-<td>保存签证类型、签证编号、签发日期、到期日期和居留许可</td>
-</tr>
-<tr>
-<td>study_records</td>
-<td>学习记录表</td>
-<td>保存课程、考勤、作业、课堂表现、预警等级和教师</td>
-</tr>
-<tr>
-<td>external_schools</td>
-<td>外部学校表</td>
-<td>保存来源学校、国家代码、联系人和对接方式</td>
-</tr>
-<tr>
-<td>grade_rules</td>
-<td>成绩规则表</td>
-<td>保存学校或国家适配规则、GPA 比例、学分比例和通过线</td>
-</tr>
-<tr>
-<td>grade_records</td>
-<td>成绩记录表</td>
-<td>保存原始成绩、适配成绩、GPA、审核状态和异常原因</td>
-</tr>
-</tbody>
-</table>
-<figure class="diagram"><img src="../assets/diagrams/er_model.svg" alt="图 3 数据库 ER 模型图"><figcaption>图 3 数据库 ER 模型图</figcaption></figure>
-
-<p>图 3 为数据库 ER 模型图，用于说明核心表结构之间的业务关联。用户表分别与学生表、教师表建立账号绑定关系，学生表与国籍表、班级表关联形成学生档案主数据，签证表、住宿表和学习记录表围绕学生形成风险查询数据来源，外部学校表、成绩规则表和成绩记录表共同支撑多国家、多学校成绩适配。该图放置在数据设计章节，用于证明数据库设计能够支撑档案管理、教师管理、风险查询和成绩适配等核心功能。</p>
-<h3 id="62">6.2 测试数据规模</h3>
-<p>系统已经写入业务关联测试数据，各业务表记录均不少于 100 条。用户、学生、教师、班级、住宿、签证、学习记录、外部学校、成绩规则和成绩记录之间通过外键或业务编号建立关联，用于验证列表查询、统计分析、成绩适配和风险查询功能。</p>
-<h2 id="7">7 接口设计</h2>
-<table>
-<thead>
-<tr>
-<th>接口</th>
-<th>方法</th>
-<th>功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>/api/auth/login</td>
-<td>POST</td>
-<td>用户登录，返回令牌和用户角色</td>
-</tr>
-<tr>
-<td>/api/students/me</td>
-<td>GET</td>
-<td>学生查看本人档案</td>
-</tr>
-<tr>
-<td>/api/students</td>
-<td>GET</td>
-<td>教师或管理员查看学生列表</td>
-</tr>
-<tr>
-<td>/api/teachers</td>
-<td>GET</td>
-<td>管理员查看教师列表</td>
-</tr>
-<tr>
-<td>/api/grades</td>
-<td>GET</td>
-<td>教师或管理员查看成绩适配记录</td>
-</tr>
-<tr>
-<td>/api/grades/adapt</td>
-<td>POST</td>
-<td>教师或管理员提交外部成绩并执行适配</td>
-</tr>
-<tr>
-<td>/api/grades/student/:studentId</td>
-<td>GET</td>
-<td>查看指定学生成绩适配记录</td>
-</tr>
-<tr>
-<td>/api/grades/:id/audit</td>
-<td>PATCH</td>
-<td>管理员审核成绩记录</td>
-</tr>
-<tr>
-<td>/api/management/dashboard</td>
-<td>GET</td>
-<td>统计分析</td>
-</tr>
-<tr>
-<td>/api/management/risks</td>
-<td>GET</td>
-<td>风险查询</td>
-</tr>
-</tbody>
-</table>
-<h2 id="8">8 运行与部署设计</h2>
-<p>系统服务运行于 Node.js 环境，通过 npm 安装依赖并启动 Express 服务。数据库使用 MySQL，初始化脚本创建数据库和业务表，种子脚本写入业务关联测试数据。前端静态资源由后端服务托管，用户通过浏览器访问系统入口。部署时应将数据库密码、令牌密钥和服务端口写入环境变量，并在生产环境中使用强密钥和独立数据库账号。</p>
-<h2 id="9">9 安全与权限设计</h2>
-<p>系统采用角色控制访问范围。学生角色只能访问本人档案和本人成绩，教师角色可访问教学相关学生、成绩和风险信息，管理员角色可访问管理统计、学生、教师、成绩和风险模块。密码以哈希形式保存，接口通过令牌鉴权。软著文档和截图中对演示账号密码进行脱敏处理，不展示真实数据库口令、令牌密钥或服务器路径。</p>
-<h2 id="10">10 测试与验证</h2>
-<p>系统已完成数据库初始化、业务数据填充、接口回归测试和浏览器截图验证。测试覆盖学生登录、教师登录、管理员登录、学生本人档案、学生成绩查询、教师学生列表、教师成绩管理、管理员教师管理、统计分析、成绩适配提交、成绩审核和风险查询。测试数据中各业务表记录均不少于 100 条，关键外键关系不存在断链。</p>
-<h2 id="11_1">11 运行界面截图</h2>
-<h3 id="111-h5">11.1 H5 学生客户端截图</h3>
-<div class="h5-pair">
-<figure class="h5"><img src="../assets/screenshots/01_h5_login_zh.png" alt="H5 学生端中文登录页"><figcaption>H5 学生端中文登录页</figcaption></figure>
-<figure class="h5"><img src="../assets/screenshots/02_h5_login_en.png" alt="H5 Student Sign In Page"><figcaption>H5 Student Sign In Page</figcaption></figure>
-</div>
-
-<p class="caption-note">图 1 H5 登录页中英文对照。左图为中文登录页，右图为英文登录页，语言切换入口位于页面右上角。</p>
-
-<div class="h5-pair">
-<figure class="h5"><img src="../assets/screenshots/03_h5_student_profile_zh.png" alt="H5 学生端中文个人档案页"><figcaption>H5 学生端中文个人档案页</figcaption></figure>
-<figure class="h5"><img src="../assets/screenshots/06_h5_student_profile_en.png" alt="H5 Student Profile Page"><figcaption>H5 Student Profile Page</figcaption></figure>
-</div>
-
-<p class="caption-note">图 2 H5 学生个人档案中英文对照。左图为中文档案页，右图为英文档案页，展示同一学生账号在两种语言下的档案字段。</p>
-
-<div class="h5-pair">
-<figure class="h5"><img src="../assets/screenshots/04_h5_student_grades_zh.png" alt="H5 学生端中文成绩适配页"><figcaption>H5 学生端中文成绩适配页</figcaption></figure>
-<figure class="h5"><img src="../assets/screenshots/07_h5_student_grades_en.png" alt="H5 Student Grade Adapter Page"><figcaption>H5 Student Grade Adapter Page</figcaption></figure>
-</div>
-
-<p class="caption-note">图 3 H5 学生成绩适配中英文对照。左图展示中文成绩适配结果，右图展示英文成绩适配结果，体现跨学校成绩数据的双语展示。</p>
-
-<div class="h5-pair">
-<figure class="h5"><img src="../assets/screenshots/05_h5_student_learning_zh.png" alt="H5 学生端中文学习情况页"><figcaption>H5 学生端中文学习情况页</figcaption></figure>
-<figure class="h5"><img src="../assets/screenshots/08_h5_student_learning_en.png" alt="H5 Student Learning Page"><figcaption>H5 Student Learning Page</figcaption></figure>
-</div>
-
-<p class="caption-note">图 4 H5 学习情况中英文对照。左图为中文学习情况入口，右图为英文学习情况入口，说明学生端学习过程信息支持国际化。</p>
-
-<div class="h5-pair">
-<figure class="h5"><img src="../assets/screenshots/09_h5_batch_student_grades_zh.png" alt="H5 批量学生中文成绩页"><figcaption>H5 批量学生中文成绩页</figcaption></figure>
-<figure class="h5"><img src="../assets/screenshots/10_h5_batch_student_profile_en.png" alt="H5 Batch Student Profile Page"><figcaption>H5 Batch Student Profile Page</figcaption></figure>
-</div>
-
-<p class="caption-note">图 5 H5 批量业务数据学生页面。左图为批量学生中文成绩页，右图为批量学生英文档案页，说明系统中的测试数据具备业务关联。</p>
-
-<h3 id="112">11.2 管理端截图</h3>
-<figure class="wide"><img src="../assets/screenshots/11_admin_dashboard_zh.png" alt="管理端中文统计分析页"><figcaption>管理端中文统计分析页</figcaption></figure>
-
-<p class="caption-note">运行截图 6 管理端中文统计分析页。管理端中文统计分析页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示学生人数、教师人数、签证预警和成绩异常统计，说明管理员可查看系统整体运行状态。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/12_admin_students_zh.png" alt="管理端中文学生管理列表"><figcaption>管理端中文学生管理列表</figcaption></figure>
-
-<p class="caption-note">运行截图 7 管理端中文学生管理列表。管理端中文学生管理列表。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示学生学号、姓名、国籍、班级和状态，说明学生档案管理具备列表查询能力。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/13_admin_teachers_zh.png" alt="管理端中文教师管理列表"><figcaption>管理端中文教师管理列表</figcaption></figure>
-
-<p class="caption-note">运行截图 8 管理端中文教师管理列表。管理端中文教师管理列表。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示教师工号、姓名、学院、类型和邮箱，说明教师基础数据可以集中维护。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/14_admin_grades_zh.png" alt="管理端中文成绩适配管理页"><figcaption>管理端中文成绩适配管理页</figcaption></figure>
-
-<p class="caption-note">运行截图 9 管理端中文成绩适配管理页。管理端中文成绩适配管理页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示外部学校成绩记录、原始成绩、适配成绩和审核状态，说明成绩适配结果可以集中管理。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/15_admin_risks_zh.png" alt="管理端中文风险查询页"><figcaption>管理端中文风险查询页</figcaption></figure>
-
-<p class="caption-note">运行截图 10 管理端中文风险查询页。管理端中文风险查询页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示签证临期、成绩异常、低分风险和学习预警数量，说明系统支持综合风险查询。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/16_admin_dashboard_en.png" alt="Admin Analytics Page"><figcaption>Admin Analytics Page</figcaption></figure>
-
-<p class="caption-note">运行截图 11 Admin Analytics Page。Admin Analytics Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文统计指标 Students、Teachers、Visa Alerts、Grade Exceptions，说明管理端支持英文展示。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/17_admin_students_en.png" alt="Admin Student Management Page"><figcaption>Admin Student Management Page</figcaption></figure>
-
-<p class="caption-note">运行截图 12 Admin Student Management Page。Admin Student Management Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文学生管理列表，说明学生档案数据在英文界面下可以查询。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/18_admin_teachers_en.png" alt="Admin Teacher Management Page"><figcaption>Admin Teacher Management Page</figcaption></figure>
-
-<p class="caption-note">运行截图 13 Admin Teacher Management Page。Admin Teacher Management Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文教师列表，说明管理员可查看教师基础信息和教师类型。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/19_admin_grades_en.png" alt="Admin Grade Adapter Management Page"><figcaption>Admin Grade Adapter Management Page</figcaption></figure>
-
-<p class="caption-note">运行截图 14 Admin Grade Adapter Management Page。Admin Grade Adapter Management Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文成绩适配管理表格，说明跨学校成绩记录可在英文管理端集中查询。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/20_admin_risks_en.png" alt="Admin Risk Query Page"><figcaption>Admin Risk Query Page</figcaption></figure>
-
-<p class="caption-note">运行截图 15 Admin Risk Query Page。Admin Risk Query Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文风险查询指标和明细表，说明风险模块支持国际化展示。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/21_teacher_dashboard_zh.png" alt="教师端中文统计分析页"><figcaption>教师端中文统计分析页</figcaption></figure>
-
-<p class="caption-note">运行截图 16 教师端中文统计分析页。教师端中文统计分析页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示教师角色可访问的统计概览，说明教师端受角色权限控制。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/22_teacher_students_zh.png" alt="教师端中文学生管理页"><figcaption>教师端中文学生管理页</figcaption></figure>
-
-<p class="caption-note">运行截图 17 教师端中文学生管理页。教师端中文学生管理页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示教师可查看的学生列表，支撑班级学生、课程学生和学习状态管理。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/23_teacher_grades_zh.png" alt="教师端中文成绩管理页"><figcaption>教师端中文成绩管理页</figcaption></figure>
-
-<p class="caption-note">运行截图 18 教师端中文成绩管理页。教师端中文成绩管理页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示教师可访问的成绩适配记录，说明教师可参与成绩录入和核验流程。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/24_teacher_risks_zh.png" alt="教师端中文风险查询页"><figcaption>教师端中文风险查询页</figcaption></figure>
-
-<p class="caption-note">运行截图 19 教师端中文风险查询页。教师端中文风险查询页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示教师端风险查询结果，便于教师关注成绩、学习和签证相关预警。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/25_teacher_dashboard_en.png" alt="Teacher Analytics Page"><figcaption>Teacher Analytics Page</figcaption></figure>
-
-<p class="caption-note">运行截图 20 Teacher Analytics Page。Teacher Analytics Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文教师统计概览，是教师端英文工作台入口。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/26_teacher_students_en.png" alt="Teacher Student Management Page"><figcaption>Teacher Student Management Page</figcaption></figure>
-
-<p class="caption-note">运行截图 21 Teacher Student Management Page。Teacher Student Management Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文学生列表，说明教师端可在英文界面下进行学生查询。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/27_teacher_grades_en.png" alt="Teacher Grade Adapter Page"><figcaption>Teacher Grade Adapter Page</figcaption></figure>
-
-<p class="caption-note">运行截图 22 Teacher Grade Adapter Page。Teacher Grade Adapter Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文成绩适配管理列表，说明教师端可查看成绩适配结果和审核状态。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/28_teacher_risks_en.png" alt="Teacher Risk Query Page"><figcaption>Teacher Risk Query Page</figcaption></figure>
-
-<p class="caption-note">运行截图 23 Teacher Risk Query Page。Teacher Risk Query Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，展示英文风险查询，支撑教师识别学生学习和成绩风险。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/29_admin_risks_scroll_zh.png" alt="管理端中文风险查询明细滚动页"><figcaption>管理端中文风险查询明细滚动页</figcaption></figure>
-
-<p class="caption-note">运行截图 24 管理端中文风险查询明细滚动页。管理端中文风险查询明细滚动页。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为中文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，滚动展示更多风险明细，说明风险列表支持集中展示多类型预警记录。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<figure class="wide"><img src="../assets/screenshots/30_admin_students_scroll_en.png" alt="Admin Student Management Detail Scroll Page"><figcaption>Admin Student Management Detail Scroll Page</figcaption></figure>
-
-<p class="caption-note">运行截图 25 Admin Student Management Detail Scroll Page。Admin Student Management Detail Scroll Page。该截图来源于面向国际留学生的信息管理系统V1.0的真实运行界面，页面类型为管理页面，语言状态为英文。截图中可以看到系统标题、角色菜单、主要业务数据区域、表格字段或状态指标，滚动展示更多学生记录，说明批量学生档案数据在管理端可以连续浏览。该图用于软著材料中证明软件已经具备对应功能的实际界面、数据展示和角色权限边界。截图内容与用户认证、学生档案、教师管理、成绩适配、统计分析或风险查询等模块存在直接关系，能够说明系统围绕国际留学生管理场景提供了可运行的页面入口和业务数据呈现能力。</p>
-
-<div class="page-break"></div>
-
-<h2 id="12_1">12 截图清单与校验说明</h2>
-<p>本次软著材料共采集 30 张真实运行截图，其中 10 张为 H5 竖屏截图，20 张为教师端和管理端横屏截图。H5 截图按照中文和英文两张并排方式插入文档，重点体现学生客户端的移动端适配和国际化能力；管理端截图按照全宽方式插入文档，重点保证统计指标、表格字段、风险明细和成绩适配记录在 A4 页面中的可读性。每张截图均在 <code>docs/assets/screenshots</code> 目录下保留同名 PNG 文件和 TXT 说明文件，TXT 说明记录页面名称、访问状态、关键区域、模块关系和收录原因。截图采集过程中，系统服务处于真实运行状态，数据来自 MySQL 中的业务关联测试数据，未使用静态设计图替代真实页面。</p>
-<table>
-<thead>
-<tr>
-<th>编号</th>
-<th>截图文件</th>
-<th>页面类型</th>
-<th>排版方式</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>01</td>
-<td>01_h5_login_zh.png</td>
-<td>H5 / 中文 / H5 学生端中文登录页</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>02</td>
-<td>02_h5_login_en.png</td>
-<td>H5 / 英文 / H5 Student Sign In Page</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>03</td>
-<td>03_h5_student_profile_zh.png</td>
-<td>H5 / 中文 / H5 学生端中文个人档案页</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>04</td>
-<td>04_h5_student_grades_zh.png</td>
-<td>H5 / 中文 / H5 学生端中文成绩适配页</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>05</td>
-<td>05_h5_student_learning_zh.png</td>
-<td>H5 / 中文 / H5 学生端中文学习情况页</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>06</td>
-<td>06_h5_student_profile_en.png</td>
-<td>H5 / 英文 / H5 Student Profile Page</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>07</td>
-<td>07_h5_student_grades_en.png</td>
-<td>H5 / 英文 / H5 Student Grade Adapter Page</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>08</td>
-<td>08_h5_student_learning_en.png</td>
-<td>H5 / 英文 / H5 Student Learning Page</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>09</td>
-<td>09_h5_batch_student_grades_zh.png</td>
-<td>H5 / 中文 / H5 批量学生中文成绩页</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>10</td>
-<td>10_h5_batch_student_profile_en.png</td>
-<td>H5 / 英文 / H5 Batch Student Profile Page</td>
-<td>H5 竖屏，两图并排</td>
-</tr>
-<tr>
-<td>11</td>
-<td>11_admin_dashboard_zh.png</td>
-<td>管理 / 中文 / 管理端中文统计分析页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>12</td>
-<td>12_admin_students_zh.png</td>
-<td>管理 / 中文 / 管理端中文学生管理列表</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>13</td>
-<td>13_admin_teachers_zh.png</td>
-<td>管理 / 中文 / 管理端中文教师管理列表</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>14</td>
-<td>14_admin_grades_zh.png</td>
-<td>管理 / 中文 / 管理端中文成绩适配管理页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>15</td>
-<td>15_admin_risks_zh.png</td>
-<td>管理 / 中文 / 管理端中文风险查询页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>16</td>
-<td>16_admin_dashboard_en.png</td>
-<td>管理 / 英文 / Admin Analytics Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>17</td>
-<td>17_admin_students_en.png</td>
-<td>管理 / 英文 / Admin Student Management Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>18</td>
-<td>18_admin_teachers_en.png</td>
-<td>管理 / 英文 / Admin Teacher Management Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>19</td>
-<td>19_admin_grades_en.png</td>
-<td>管理 / 英文 / Admin Grade Adapter Management Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>20</td>
-<td>20_admin_risks_en.png</td>
-<td>管理 / 英文 / Admin Risk Query Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>21</td>
-<td>21_teacher_dashboard_zh.png</td>
-<td>管理 / 中文 / 教师端中文统计分析页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>22</td>
-<td>22_teacher_students_zh.png</td>
-<td>管理 / 中文 / 教师端中文学生管理页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>23</td>
-<td>23_teacher_grades_zh.png</td>
-<td>管理 / 中文 / 教师端中文成绩管理页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>24</td>
-<td>24_teacher_risks_zh.png</td>
-<td>管理 / 中文 / 教师端中文风险查询页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>25</td>
-<td>25_teacher_dashboard_en.png</td>
-<td>管理 / 英文 / Teacher Analytics Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>26</td>
-<td>26_teacher_students_en.png</td>
-<td>管理 / 英文 / Teacher Student Management Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>27</td>
-<td>27_teacher_grades_en.png</td>
-<td>管理 / 英文 / Teacher Grade Adapter Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>28</td>
-<td>28_teacher_risks_en.png</td>
-<td>管理 / 英文 / Teacher Risk Query Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>29</td>
-<td>29_admin_risks_scroll_zh.png</td>
-<td>管理 / 中文 / 管理端中文风险查询明细滚动页</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-<tr>
-<td>30</td>
-<td>30_admin_students_scroll_en.png</td>
-<td>管理 / 英文 / Admin Student Management Detail Scroll Page</td>
-<td>管理端横屏，全宽展示</td>
-</tr>
-</tbody>
-</table>
-<h2 id="13">13 结论</h2>
-<p>面向国际留学生的信息管理系统 V1.0 已形成可运行的软件成果。系统围绕国际学生管理业务，提供学生端双语访问、教师端教学管理、管理端统计分析、成绩适配和风险查询能力。系统通过数据表、接口、权限和运行界面共同支撑学生档案、教师、班级、国籍、住宿、签证、学习记录、成绩规则和成绩记录等业务数据管理，能够满足 V1.0 阶段的软件著作权材料编写和界面证明要求。</p></body></html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>面向国际留学生的信息管理系统V1.0说明书</title><style>
+@page { size:A4; margin:0; }
+body{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;color:#111827;font-size:12.2px;line-height:1.62;margin:0;padding:14mm 14mm 9mm;box-sizing:border-box;}
+.pdf-header{position:fixed;top:0;left:0;right:0;text-align:center;font-size:9px;line-height:12px;color:#555;}
+h1{text-align:center;font-size:23px;margin:0 0 16px;} h2{font-size:17px;margin:18px 0 8px;border-bottom:1px solid #111;padding-bottom:4px;page-break-after:avoid;} h3{font-size:14px;margin:13px 0 6px;page-break-after:avoid;} p{margin:5px 0;text-align:justify;}
+table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:10.2px;border-top:1.4px solid #111;border-bottom:1.4px solid #111;} th{border-bottom:1px solid #111;} th,td{padding:4px 6px;text-align:left;vertical-align:top;}
+figure{margin:9px 0 14px;text-align:center;page-break-inside:avoid;} figure img{max-width:100%;object-fit:contain;} figure.diagram{page-break-before:always;} figure.diagram img{max-height:178mm;} figure.screen,figure.h5shot{page-break-before:always;} figure.screen img{width:100%;max-height:168mm;border:1px solid #d0d7de;} figure.h5shot img{max-height:182mm;width:auto;border:1px solid #d0d7de;} figcaption{font-size:10.5px;margin-top:5px;text-align:center;}
+pre{white-space:pre-wrap;word-break:break-word;font-size:9.5px;line-height:1.35;border:1px solid #ddd;padding:6px;}
+</style></head><body><div class="pdf-header">面向国际留学生的信息管理系统V1.0说明书</div><h1>面向国际留学生的信息管理系统V1.0软件设计说明书</h1>
+<h2>目录</h2>
+<p>1. 引言</p>
+<p>2. 需求概要分析</p>
+<p>3. 系统概述</p>
+<p>4. 总体设计</p>
+<p>5. 详细设计</p>
+<p>6. 数据设计</p>
+<p>7. 接口设计</p>
+<p>8. 运行与部署设计</p>
+<p>9. 安全与权限设计</p>
+<p>10. 测试与验证</p>
+<p>11. 结论</p>
+<h2>1 引言</h2>
+<h3>1.1 编写目的</h3>
+<p>本文档用于说明面向国际留学生的信息管理系统V1.0的需求背景、系统结构、功能模块、详细流程、数据对象、关键接口、运行部署、安全权限和测试验证情况，作为软件著作权登记材料中的软件设计说明书。</p>
+<h3>1.2 软件范围</h3>
+<p>面向国际留学生的信息管理系统V1.0包含前端页面、后端接口、数据库结构、运行脚本和配套配置。系统围绕留学生学习或管理业务提供登录认证、业务数据查询、核心流程处理、统计分析、权限控制和运行部署能力。</p>
+<h2>2 需求概要分析</h2>
+<h3>2.1 需求背景</h3>
+<p>在中国—东盟全方位深化合作、教育对外开放持续推进的大背景下，我国已成为东盟留学生主要留学目的地，2023年中国与东盟双向留学人数已突破17.5万，越来越多东盟各国学生通过校际交换、公费留学、自费深造等多种方式来华求学，国际留学生规模持续扩大，高校国际教育业务体量大幅增长。留学生招生录取、学籍管理、日常考勤、签证备案、奖助管理、生活服务、交流活动等各类业务日趋繁杂，传统人工管理、零散表格统计的模式已无法适配规模化、规范化的管理需求。</p>
+<p>目前多数高校针对东盟国际留学生的管理存在诸多痛点，缺乏一体化、专业化的留学生专项管理载体，存在信息数据分散、统计效率低下、流程繁琐、信息同步不及时、服务对接滞后等问题。管理人员难以高效完成留学生信息汇总、动态监管、数据统计上报，留学生也无法便捷获取校园服务、政策通知、学业进度、交流项目等相关信息，极大制约了高校国际教育管理效率与服务质量，不利于中国—东盟留学生交流工作的规范化、数字化发展。</p>
+<p>为顺应教育数字化转型趋势，搭建标准化、一体化、智能化的国际留学生管理服务门户，整合留学生全周期信息与服务资源，打通高校管理端与留学生服务端的信息壁垒，简化管理流程、提升工作效率，同时为东盟来华留学生提供一站式信息服务保障，助力深化中国与东盟各国的教育交流与人才合作，特此研发本国际留学生信息管理系统。</p>
+<h3>2.2 建设目标</h3>
+<p>本软件建设目标是形成可运行、可维护、可扩展的面向国际留学生的信息管理系统，通过 Web/H5 页面与后端接口整合业务数据，减少人工处理和零散表格管理带来的低效问题，提升留学生使用体验、教师管理效率和业务数据可追溯性。</p>
+<h3>2.3 用户角色和核心业务需求</h3>
+<table><thead><tr><th>模块</th><th>服务角色</th><th>核心职责</th><th>接口或页面</th><th>核心数据</th></tr></thead><tbody><tr><td>认证与角色模块</td><td>学生、教师、管理员</td><td>统一登录、JWT 签发、角色鉴权和会话保持</td><td>/api/auth/login</td><td>users</td></tr><tr><td>学生档案模块</td><td>学生、教师、管理员</td><td>本人档案查询、学生列表和学生基础信息管理</td><td>/api/students/*</td><td>students、classes、nationalities</td></tr><tr><td>教师管理模块</td><td>管理员</td><td>教师列表、教师工号、学院和教师类型维护</td><td>/api/teachers/*</td><td>teachers、users</td></tr><tr><td>成绩适配模块</td><td>学生、教师、管理员</td><td>外部成绩录入、规则适配、审核和学生成绩查询</td><td>/api/grades/*</td><td>grade_records、grade_rules、external_schools</td></tr><tr><td>风险查询模块</td><td>教师、管理员</td><td>签证、成绩、学习和住宿风险聚合查询</td><td>/api/management/risks</td><td>visas、grade_records、study_records、dormitories</td></tr><tr><td>统计分析模块</td><td>教师、管理员</td><td>学生数、教师数、签证预警和成绩异常统计</td><td>/api/management/dashboard</td><td>students、teachers、visas、grade_records</td></tr></tbody></table>
+<h3>2.4 运行、安全和测试概要要求</h3>
+<p>系统应支持本地 Linux 服务器运行，使用 Node.js、浏览器和 MySQL 等支撑环境；应对账号、密码、数据库连接、令牌和接口地址进行脱敏；应通过真实运行页面、接口调用、数据库数据和 PDF 页数校验证明材料完整性。</p>
+<h2>3 系统概述</h2>
+<h3>3.1 系统边界</h3>
+<p>面向国际留学生的信息管理系统V1.0的系统边界包括浏览器/H5 页面、前端路由与组件、API 请求封装、Node.js/Express 后端、认证与角色权限控制、业务路由模块和 MySQL 数据库。普通用户主要通过 H5 页面完成学习、资料、成绩或业务查询，管理角色通过桌面管理页面完成列表维护、统计分析和风险处理。</p>
+<h3>3.2 页面与截图清单</h3>
+<table><thead><tr><th>序号</th><th>截图文件</th><th>页面名称</th><th>校准方式</th></tr></thead><tbody><tr><td>1</td><td>01_h5_login_zh.png</td><td>H5 中文登录页</td><td>H5 竖屏校准截图</td></tr><tr><td>2</td><td>02_h5_login_en.png</td><td>H5 英文登录页</td><td>H5 竖屏校准截图</td></tr><tr><td>3</td><td>03_h5_student_profile_zh.png</td><td>H5 学生中文档案页</td><td>H5 竖屏校准截图</td></tr><tr><td>4</td><td>04_h5_student_grades_zh.png</td><td>H5 学生中文成绩适配页</td><td>H5 竖屏校准截图</td></tr><tr><td>5</td><td>05_h5_student_learning_zh.png</td><td>H5 学生中文学习情况页</td><td>H5 竖屏校准截图</td></tr><tr><td>6</td><td>06_h5_student_profile_en.png</td><td>H5 学生英文档案页</td><td>H5 竖屏校准截图</td></tr><tr><td>7</td><td>07_h5_student_grades_en.png</td><td>H5 学生英文成绩页</td><td>H5 竖屏校准截图</td></tr><tr><td>8</td><td>08_admin_dashboard_zh.png</td><td>管理端中文统计页</td><td>桌面横屏截图</td></tr><tr><td>9</td><td>09_admin_students_zh.png</td><td>管理端中文学生列表页</td><td>桌面横屏截图</td></tr><tr><td>10</td><td>10_admin_teachers_zh.png</td><td>管理端中文教师列表页</td><td>桌面横屏截图</td></tr><tr><td>11</td><td>11_admin_grades_zh.png</td><td>管理端中文成绩适配页</td><td>桌面横屏截图</td></tr><tr><td>12</td><td>12_admin_risks_zh.png</td><td>管理端中文风险查询页</td><td>桌面横屏截图</td></tr><tr><td>13</td><td>13_teacher_dashboard_en.png</td><td>教师端英文统计页</td><td>桌面横屏截图</td></tr><tr><td>14</td><td>14_teacher_students_en.png</td><td>教师端英文学生列表页</td><td>桌面横屏截图</td></tr><tr><td>15</td><td>15_teacher_grades_en.png</td><td>教师端英文成绩页</td><td>桌面横屏截图</td></tr><tr><td>16</td><td>16_teacher_risks_en.png</td><td>教师端英文风险页</td><td>桌面横屏截图</td></tr></tbody></table>
+<h3>3.3 功能模块概览</h3>
+<table><thead><tr><th>模块</th><th>服务角色</th><th>核心职责</th><th>接口或页面</th><th>核心数据</th></tr></thead><tbody><tr><td>认证与角色模块</td><td>学生、教师、管理员</td><td>统一登录、JWT 签发、角色鉴权和会话保持</td><td>/api/auth/login</td><td>users</td></tr><tr><td>学生档案模块</td><td>学生、教师、管理员</td><td>本人档案查询、学生列表和学生基础信息管理</td><td>/api/students/*</td><td>students、classes、nationalities</td></tr><tr><td>教师管理模块</td><td>管理员</td><td>教师列表、教师工号、学院和教师类型维护</td><td>/api/teachers/*</td><td>teachers、users</td></tr><tr><td>成绩适配模块</td><td>学生、教师、管理员</td><td>外部成绩录入、规则适配、审核和学生成绩查询</td><td>/api/grades/*</td><td>grade_records、grade_rules、external_schools</td></tr><tr><td>风险查询模块</td><td>教师、管理员</td><td>签证、成绩、学习和住宿风险聚合查询</td><td>/api/management/risks</td><td>visas、grade_records、study_records、dormitories</td></tr><tr><td>统计分析模块</td><td>教师、管理员</td><td>学生数、教师数、签证预警和成绩异常统计</td><td>/api/management/dashboard</td><td>students、teachers、visas、grade_records</td></tr></tbody></table>
+<h2>4 总体设计</h2>
+<h3>4.1 分层架构</h3>
+<p>系统采用浏览器前端、Node.js/Express 服务端和 MySQL 数据库的分层结构。前端负责页面展示、路由跳转、语言切换和 API 请求封装，服务端负责身份认证、权限校验、业务路由、数据聚合和异常处理，数据库负责保存用户、业务主数据、关系数据和记录数据。</p>
+<h3>4.2 模块协作原则</h3>
+<p>各模块按照“页面入口 - 请求封装 - 认证权限 - 业务路由 - 数据对象 - 结果展示”的链路协作。前端只保留页面状态和必要的会话信息，后端统一承担权限判断、参数校验、数据读写和错误返回，数据库表或业务对象之间通过用户身份、业务主数据、记录数据和日志数据建立关联。</p>
+<h3>4.3 图示组织原则</h3>
+<p>本说明书将主要 UML 图编排在第 5 章详细设计正文中。用例图用于表达角色与功能入口，时序图用于表达接口调用链路，活动图用于表达业务处理路径，组件图和部署图用于表达系统运行结构，数据对象图用于表达核心数据关系。</p>
+<h2>5 详细设计</h2>
+<h3>5.1 详细设计 UML 覆盖关系</h3>
+<table><thead><tr><th>序号</th><th>详细设计小节</th><th>UML 图文件</th><th>图示说明 TXT</th><th>图示类型</th></tr></thead><tbody><tr><td>1</td><td>系统组件与调用关系设计</td><td>01_system_component.svg</td><td>01_system_component.txt</td><td>component</td></tr><tr><td>2</td><td>运行部署结构设计</td><td>02_deployment.svg</td><td>02_deployment.txt</td><td>deployment</td></tr><tr><td>3</td><td>认证权限状态设计</td><td>03_permission_state.svg</td><td>03_permission_state.txt</td><td>state</td></tr><tr><td>4</td><td>核心数据对象设计</td><td>04_data_object.svg</td><td>04_data_object.txt</td><td>class</td></tr><tr><td>5</td><td>认证与角色模块用例设计</td><td>05_module_1_use_case.svg</td><td>05_module_1_use_case.txt</td><td>usecase</td></tr><tr><td>6</td><td>认证与角色模块接口调用时序设计</td><td>06_module_1_sequence.svg</td><td>06_module_1_sequence.txt</td><td>sequence</td></tr><tr><td>7</td><td>认证与角色模块业务活动设计</td><td>07_module_1_activity.svg</td><td>07_module_1_activity.txt</td><td>activity</td></tr><tr><td>8</td><td>认证与角色模块状态转换设计</td><td>23_module_1_state.svg</td><td>23_module_1_state.txt</td><td>state</td></tr><tr><td>9</td><td>认证与角色模块组件协作设计</td><td>29_module_1_component.svg</td><td>29_module_1_component.txt</td><td>component</td></tr><tr><td>10</td><td>认证与角色模块数据关系设计</td><td>30_module_1_data.svg</td><td>30_module_1_data.txt</td><td>class</td></tr><tr><td>11</td><td>学生档案模块用例设计</td><td>08_module_2_use_case.svg</td><td>08_module_2_use_case.txt</td><td>usecase</td></tr><tr><td>12</td><td>学生档案模块接口调用时序设计</td><td>09_module_2_sequence.svg</td><td>09_module_2_sequence.txt</td><td>sequence</td></tr><tr><td>13</td><td>学生档案模块业务活动设计</td><td>10_module_2_activity.svg</td><td>10_module_2_activity.txt</td><td>activity</td></tr><tr><td>14</td><td>学生档案模块状态转换设计</td><td>24_module_2_state.svg</td><td>24_module_2_state.txt</td><td>state</td></tr><tr><td>15</td><td>学生档案模块组件协作设计</td><td>31_module_2_component.svg</td><td>31_module_2_component.txt</td><td>component</td></tr><tr><td>16</td><td>学生档案模块数据关系设计</td><td>32_module_2_data.svg</td><td>32_module_2_data.txt</td><td>class</td></tr><tr><td>17</td><td>教师管理模块用例设计</td><td>11_module_3_use_case.svg</td><td>11_module_3_use_case.txt</td><td>usecase</td></tr><tr><td>18</td><td>教师管理模块接口调用时序设计</td><td>12_module_3_sequence.svg</td><td>12_module_3_sequence.txt</td><td>sequence</td></tr><tr><td>19</td><td>教师管理模块业务活动设计</td><td>13_module_3_activity.svg</td><td>13_module_3_activity.txt</td><td>activity</td></tr><tr><td>20</td><td>教师管理模块状态转换设计</td><td>25_module_3_state.svg</td><td>25_module_3_state.txt</td><td>state</td></tr><tr><td>21</td><td>教师管理模块组件协作设计</td><td>33_module_3_component.svg</td><td>33_module_3_component.txt</td><td>component</td></tr><tr><td>22</td><td>教师管理模块数据关系设计</td><td>34_module_3_data.svg</td><td>34_module_3_data.txt</td><td>class</td></tr><tr><td>23</td><td>成绩适配模块用例设计</td><td>14_module_4_use_case.svg</td><td>14_module_4_use_case.txt</td><td>usecase</td></tr><tr><td>24</td><td>成绩适配模块接口调用时序设计</td><td>15_module_4_sequence.svg</td><td>15_module_4_sequence.txt</td><td>sequence</td></tr><tr><td>25</td><td>成绩适配模块业务活动设计</td><td>16_module_4_activity.svg</td><td>16_module_4_activity.txt</td><td>activity</td></tr><tr><td>26</td><td>成绩适配模块状态转换设计</td><td>26_module_4_state.svg</td><td>26_module_4_state.txt</td><td>state</td></tr><tr><td>27</td><td>成绩适配模块组件协作设计</td><td>35_module_4_component.svg</td><td>35_module_4_component.txt</td><td>component</td></tr><tr><td>28</td><td>成绩适配模块数据关系设计</td><td>36_module_4_data.svg</td><td>36_module_4_data.txt</td><td>class</td></tr><tr><td>29</td><td>风险查询模块用例设计</td><td>17_module_5_use_case.svg</td><td>17_module_5_use_case.txt</td><td>usecase</td></tr><tr><td>30</td><td>风险查询模块接口调用时序设计</td><td>18_module_5_sequence.svg</td><td>18_module_5_sequence.txt</td><td>sequence</td></tr><tr><td>31</td><td>风险查询模块业务活动设计</td><td>19_module_5_activity.svg</td><td>19_module_5_activity.txt</td><td>activity</td></tr><tr><td>32</td><td>风险查询模块状态转换设计</td><td>27_module_5_state.svg</td><td>27_module_5_state.txt</td><td>state</td></tr><tr><td>33</td><td>风险查询模块组件协作设计</td><td>37_module_5_component.svg</td><td>37_module_5_component.txt</td><td>component</td></tr><tr><td>34</td><td>风险查询模块数据关系设计</td><td>38_module_5_data.svg</td><td>38_module_5_data.txt</td><td>class</td></tr><tr><td>35</td><td>统计分析模块用例设计</td><td>20_module_6_use_case.svg</td><td>20_module_6_use_case.txt</td><td>usecase</td></tr><tr><td>36</td><td>统计分析模块接口调用时序设计</td><td>21_module_6_sequence.svg</td><td>21_module_6_sequence.txt</td><td>sequence</td></tr><tr><td>37</td><td>统计分析模块业务活动设计</td><td>22_module_6_activity.svg</td><td>22_module_6_activity.txt</td><td>activity</td></tr><tr><td>38</td><td>统计分析模块状态转换设计</td><td>28_module_6_state.svg</td><td>28_module_6_state.txt</td><td>state</td></tr><tr><td>39</td><td>统计分析模块组件协作设计</td><td>39_module_6_component.svg</td><td>39_module_6_component.txt</td><td>component</td></tr><tr><td>40</td><td>统计分析模块数据关系设计</td><td>40_module_6_data.svg</td><td>40_module_6_data.txt</td><td>class</td></tr></tbody></table>
+<p>详细设计章节按照系统结构、运行部署、权限状态、数据对象和业务模块逐项展开，每个小节均配置对应 UML 图。主要用例图、时序图、活动图、部署图和数据对象图均放在本章正文中，不集中放到文末替代详细设计。</p>
+<h3>5.2 系统组件与调用关系设计</h3>
+<figure class="diagram"><img src="../assets/diagrams/01_system_component.svg" alt="图 5-1 系统组件 UML 图"><figcaption>图 5-1 系统组件 UML 图</figcaption></figure>
+<p>系统组件 UML 图用于说明面向国际留学生的信息管理系统的前端页面、请求封装、后端服务、认证权限、业务路由和数据库之间的分层关系。该图由 PlantUML 生成，图中每个节点都对应项目中可核验的页面、服务、接口或数据层职责，用于支撑详细设计中的系统级组件设计。</p>
+<p>系统组件关系体现前后端分层与数据访问边界。页面层只负责用户交互和显示，API 请求封装层负责统一调用和令牌携带，服务端根据认证状态进入业务路由，业务路由再围绕数据库对象完成查询、写入和统计。</p>
+<h3>5.3 运行部署结构设计</h3>
+<figure class="diagram"><img src="../assets/diagrams/02_deployment.svg" alt="图 5-2 部署 UML 图"><figcaption>图 5-2 部署 UML 图</figcaption></figure>
+<p>部署 UML 图用于说明面向国际留学生的信息管理系统在 Linux 本机应用环境中的部署关系，覆盖用户终端、静态资源服务、Node.js 应用服务、环境变量和 MySQL 数据库。该图由 PlantUML 生成，用于在详细设计正文中说明运行节点、端口关系和服务调用方向。</p>
+<p>部署结构体现本机 Linux 环境中的静态资源服务、Node.js 应用服务、环境变量和数据库服务。对外部署时应将前端入口、后端接口和数据库端口区分管理，数据库端口不直接对公网开放。</p>
+<h3>5.4 认证权限状态设计</h3>
+<figure class="diagram"><img src="../assets/diagrams/03_permission_state.svg" alt="图 5-3 权限状态 UML 图"><figcaption>图 5-3 权限状态 UML 图</figcaption></figure>
+<p>权限状态 UML 图用于说明面向国际留学生的信息管理系统从未登录、登录校验、角色会话到受保护业务访问的状态变化。该图由 PlantUML 生成，适合支撑身份认证、角色权限、退出登录和访问控制的详细设计说明。</p>
+<p>权限状态设计覆盖未登录、登录校验、角色会话、受保护业务和退出登录等状态。系统通过角色信息区分学生、教师和管理员，确保普通用户仅访问本人相关数据，管理角色访问后台统计与管理功能。</p>
+<h3>5.5 核心数据对象设计</h3>
+<figure class="diagram"><img src="../assets/diagrams/04_data_object.svg" alt="图 5-4 数据对象 UML 类图"><figcaption>图 5-4 数据对象 UML 类图</figcaption></figure>
+<p>数据对象 UML 类图用于说明面向国际留学生的信息管理系统核心业务数据对象之间的关联关系。该图由 PlantUML 生成，数据对象名称来自项目模块中已核验的数据库表或业务对象，用于支撑详细设计和数据设计章节。</p>
+<p>数据对象设计体现用户、角色、业务主数据、记录数据、统计数据和日志数据之间的关系。不同项目表名有所差异，但均围绕用户身份、业务对象和操作记录形成可追溯的数据链路。</p>
+<h3>5.6 认证与角色模块详细设计</h3>
+<p>认证与角色模块面向学生、教师、管理员，主要提供统一登录、JWT 签发、角色鉴权和会话保持。该模块的输入包括登录会话、页面查询条件、业务表单参数和分页条件，输出包括列表数据、详情数据、统计结果、提交结果或异常提示。模块对应接口或页面为 /api/auth/login，核心数据对象为 users。</p>
+<figure class="diagram"><img src="../assets/diagrams/05_module_1_use_case.svg" alt="图 5-5 认证与角色模块用例 UML 图"><figcaption>图 5-5 认证与角色模块用例 UML 图</figcaption></figure>
+<p>认证与角色模块用例 UML 图用于说明面向国际留学生的信息管理系统中学生、教师、管理员围绕统一登录、JWT 签发、角色鉴权和会话保持形成的主要功能入口和业务动作。该图由 PlantUML 生成，图中用例来自已核验模块职责和接口路径 /api/auth/login，用于放入详细设计正文。</p>
+<figure class="diagram"><img src="../assets/diagrams/06_module_1_sequence.svg" alt="图 5-6 认证与角色模块时序 UML 图"><figcaption>图 5-6 认证与角色模块时序 UML 图</figcaption></figure>
+<p>认证与角色模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/auth/login 的请求处理链路和 users 的数据读写关系。</p>
+<figure class="diagram"><img src="../assets/diagrams/07_module_1_activity.svg" alt="图 5-7 认证与角色模块活动 UML 图"><figcaption>图 5-7 认证与角色模块活动 UML 图</figcaption></figure>
+<p>认证与角色模块活动 UML 图用于说明面向国际留学生的信息管理系统中认证与角色模块从页面入口、权限判断、接口调用、业务处理、数据读写到结果展示的完整活动流程。该图由 PlantUML 生成，适合支撑详细设计中输入输出、处理流程和异常处理说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/23_module_1_state.svg" alt="图 5-8 认证与角色模块状态 UML 图"><figcaption>图 5-8 认证与角色模块状态 UML 图</figcaption></figure>
+<p>认证与角色模块状态 UML 图用于说明面向国际留学生的信息管理系统中认证与角色模块从页面待访问、会话检查、数据加载、参数校验、业务处理、结果展示到异常提示的状态变化。该图由 PlantUML 生成，用于补充详细设计中的异常处理和状态控制说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/29_module_1_component.svg" alt="图 5-9 认证与角色模块组件协作 UML 图"><figcaption>图 5-9 认证与角色模块组件协作 UML 图</figcaption></figure>
+<p>认证与角色模块组件协作 UML 图用于说明面向国际留学生的信息管理系统中认证与角色模块的页面入口、前端逻辑、API Client、认证权限中间件、业务路由、业务校验和数据对象之间的协作方式。该图由 PlantUML 生成，用于补充详细设计中的组件职责和调用边界。</p>
+<figure class="diagram"><img src="../assets/diagrams/30_module_1_data.svg" alt="图 5-10 认证与角色模块数据关系 UML 图"><figcaption>图 5-10 认证与角色模块数据关系 UML 图</figcaption></figure>
+<p>认证与角色模块数据关系 UML 图用于说明面向国际留学生的信息管理系统中认证与角色模块请求参数、响应结果和核心数据对象之间的关系。该图由 PlantUML 生成，数据对象来自 users，用于补充详细设计中的数据流转和结果组装说明。</p>
+<p>认证与角色模块的处理流程首先由用户在页面中触发操作，前端读取会话状态并组织请求参数；后端通过认证与角色权限中间件判断访问资格，再进入模块路由完成参数校验和业务处理。若数据查询或写入成功，页面展示业务结果；若出现未登录、越权、参数缺失或数据不存在，页面展示明确的异常状态。</p>
+<p>异常处理方面，认证与角色模块需要覆盖接口不可达、数据库连接异常、用户权限不足、表单字段缺失和返回数据为空等情况。前端应提供空状态、加载状态、错误提示或回退路径，后端应保持统一响应格式和可追溯日志。</p>
+<h3>5.7 学生档案模块详细设计</h3>
+<p>学生档案模块面向学生、教师、管理员，主要提供本人档案查询、学生列表和学生基础信息管理。该模块的输入包括登录会话、页面查询条件、业务表单参数和分页条件，输出包括列表数据、详情数据、统计结果、提交结果或异常提示。模块对应接口或页面为 /api/students/*，核心数据对象为 students、classes、nationalities。</p>
+<figure class="diagram"><img src="../assets/diagrams/08_module_2_use_case.svg" alt="图 5-11 学生档案模块用例 UML 图"><figcaption>图 5-11 学生档案模块用例 UML 图</figcaption></figure>
+<p>学生档案模块用例 UML 图用于说明面向国际留学生的信息管理系统中学生、教师、管理员围绕本人档案查询、学生列表和学生基础信息管理形成的主要功能入口和业务动作。该图由 PlantUML 生成，图中用例来自已核验模块职责和接口路径 /api/students/*，用于放入详细设计正文。</p>
+<figure class="diagram"><img src="../assets/diagrams/09_module_2_sequence.svg" alt="图 5-12 学生档案模块时序 UML 图"><figcaption>图 5-12 学生档案模块时序 UML 图</figcaption></figure>
+<p>学生档案模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/students/* 的请求处理链路和 students、classes、nationalities 的数据读写关系。</p>
+<figure class="diagram"><img src="../assets/diagrams/10_module_2_activity.svg" alt="图 5-13 学生档案模块活动 UML 图"><figcaption>图 5-13 学生档案模块活动 UML 图</figcaption></figure>
+<p>学生档案模块活动 UML 图用于说明面向国际留学生的信息管理系统中学生档案模块从页面入口、权限判断、接口调用、业务处理、数据读写到结果展示的完整活动流程。该图由 PlantUML 生成，适合支撑详细设计中输入输出、处理流程和异常处理说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/24_module_2_state.svg" alt="图 5-14 学生档案模块状态 UML 图"><figcaption>图 5-14 学生档案模块状态 UML 图</figcaption></figure>
+<p>学生档案模块状态 UML 图用于说明面向国际留学生的信息管理系统中学生档案模块从页面待访问、会话检查、数据加载、参数校验、业务处理、结果展示到异常提示的状态变化。该图由 PlantUML 生成，用于补充详细设计中的异常处理和状态控制说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/31_module_2_component.svg" alt="图 5-15 学生档案模块组件协作 UML 图"><figcaption>图 5-15 学生档案模块组件协作 UML 图</figcaption></figure>
+<p>学生档案模块组件协作 UML 图用于说明面向国际留学生的信息管理系统中学生档案模块的页面入口、前端逻辑、API Client、认证权限中间件、业务路由、业务校验和数据对象之间的协作方式。该图由 PlantUML 生成，用于补充详细设计中的组件职责和调用边界。</p>
+<figure class="diagram"><img src="../assets/diagrams/32_module_2_data.svg" alt="图 5-16 学生档案模块数据关系 UML 图"><figcaption>图 5-16 学生档案模块数据关系 UML 图</figcaption></figure>
+<p>学生档案模块数据关系 UML 图用于说明面向国际留学生的信息管理系统中学生档案模块请求参数、响应结果和核心数据对象之间的关系。该图由 PlantUML 生成，数据对象来自 students、classes、nationalities，用于补充详细设计中的数据流转和结果组装说明。</p>
+<p>学生档案模块的处理流程首先由用户在页面中触发操作，前端读取会话状态并组织请求参数；后端通过认证与角色权限中间件判断访问资格，再进入模块路由完成参数校验和业务处理。若数据查询或写入成功，页面展示业务结果；若出现未登录、越权、参数缺失或数据不存在，页面展示明确的异常状态。</p>
+<p>异常处理方面，学生档案模块需要覆盖接口不可达、数据库连接异常、用户权限不足、表单字段缺失和返回数据为空等情况。前端应提供空状态、加载状态、错误提示或回退路径，后端应保持统一响应格式和可追溯日志。</p>
+<h3>5.8 教师管理模块详细设计</h3>
+<p>教师管理模块面向管理员，主要提供教师列表、教师工号、学院和教师类型维护。该模块的输入包括登录会话、页面查询条件、业务表单参数和分页条件，输出包括列表数据、详情数据、统计结果、提交结果或异常提示。模块对应接口或页面为 /api/teachers/*，核心数据对象为 teachers、users。</p>
+<figure class="diagram"><img src="../assets/diagrams/11_module_3_use_case.svg" alt="图 5-17 教师管理模块用例 UML 图"><figcaption>图 5-17 教师管理模块用例 UML 图</figcaption></figure>
+<p>教师管理模块用例 UML 图用于说明面向国际留学生的信息管理系统中管理员围绕教师列表、教师工号、学院和教师类型维护形成的主要功能入口和业务动作。该图由 PlantUML 生成，图中用例来自已核验模块职责和接口路径 /api/teachers/*，用于放入详细设计正文。</p>
+<figure class="diagram"><img src="../assets/diagrams/12_module_3_sequence.svg" alt="图 5-18 教师管理模块时序 UML 图"><figcaption>图 5-18 教师管理模块时序 UML 图</figcaption></figure>
+<p>教师管理模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/teachers/* 的请求处理链路和 teachers、users 的数据读写关系。</p>
+<figure class="diagram"><img src="../assets/diagrams/13_module_3_activity.svg" alt="图 5-19 教师管理模块活动 UML 图"><figcaption>图 5-19 教师管理模块活动 UML 图</figcaption></figure>
+<p>教师管理模块活动 UML 图用于说明面向国际留学生的信息管理系统中教师管理模块从页面入口、权限判断、接口调用、业务处理、数据读写到结果展示的完整活动流程。该图由 PlantUML 生成，适合支撑详细设计中输入输出、处理流程和异常处理说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/25_module_3_state.svg" alt="图 5-20 教师管理模块状态 UML 图"><figcaption>图 5-20 教师管理模块状态 UML 图</figcaption></figure>
+<p>教师管理模块状态 UML 图用于说明面向国际留学生的信息管理系统中教师管理模块从页面待访问、会话检查、数据加载、参数校验、业务处理、结果展示到异常提示的状态变化。该图由 PlantUML 生成，用于补充详细设计中的异常处理和状态控制说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/33_module_3_component.svg" alt="图 5-21 教师管理模块组件协作 UML 图"><figcaption>图 5-21 教师管理模块组件协作 UML 图</figcaption></figure>
+<p>教师管理模块组件协作 UML 图用于说明面向国际留学生的信息管理系统中教师管理模块的页面入口、前端逻辑、API Client、认证权限中间件、业务路由、业务校验和数据对象之间的协作方式。该图由 PlantUML 生成，用于补充详细设计中的组件职责和调用边界。</p>
+<figure class="diagram"><img src="../assets/diagrams/34_module_3_data.svg" alt="图 5-22 教师管理模块数据关系 UML 图"><figcaption>图 5-22 教师管理模块数据关系 UML 图</figcaption></figure>
+<p>教师管理模块数据关系 UML 图用于说明面向国际留学生的信息管理系统中教师管理模块请求参数、响应结果和核心数据对象之间的关系。该图由 PlantUML 生成，数据对象来自 teachers、users，用于补充详细设计中的数据流转和结果组装说明。</p>
+<p>教师管理模块的处理流程首先由用户在页面中触发操作，前端读取会话状态并组织请求参数；后端通过认证与角色权限中间件判断访问资格，再进入模块路由完成参数校验和业务处理。若数据查询或写入成功，页面展示业务结果；若出现未登录、越权、参数缺失或数据不存在，页面展示明确的异常状态。</p>
+<p>异常处理方面，教师管理模块需要覆盖接口不可达、数据库连接异常、用户权限不足、表单字段缺失和返回数据为空等情况。前端应提供空状态、加载状态、错误提示或回退路径，后端应保持统一响应格式和可追溯日志。</p>
+<h3>5.9 成绩适配模块详细设计</h3>
+<p>成绩适配模块面向学生、教师、管理员，主要提供外部成绩录入、规则适配、审核和学生成绩查询。该模块的输入包括登录会话、页面查询条件、业务表单参数和分页条件，输出包括列表数据、详情数据、统计结果、提交结果或异常提示。模块对应接口或页面为 /api/grades/*，核心数据对象为 grade_records、grade_rules、external_schools。</p>
+<figure class="diagram"><img src="../assets/diagrams/14_module_4_use_case.svg" alt="图 5-23 成绩适配模块用例 UML 图"><figcaption>图 5-23 成绩适配模块用例 UML 图</figcaption></figure>
+<p>成绩适配模块用例 UML 图用于说明面向国际留学生的信息管理系统中学生、教师、管理员围绕外部成绩录入、规则适配、审核和学生成绩查询形成的主要功能入口和业务动作。该图由 PlantUML 生成，图中用例来自已核验模块职责和接口路径 /api/grades/*，用于放入详细设计正文。</p>
+<figure class="diagram"><img src="../assets/diagrams/15_module_4_sequence.svg" alt="图 5-24 成绩适配模块时序 UML 图"><figcaption>图 5-24 成绩适配模块时序 UML 图</figcaption></figure>
+<p>成绩适配模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/grades/* 的请求处理链路和 grade_records、grade_rules、external_schools 的数据读写关系。</p>
+<figure class="diagram"><img src="../assets/diagrams/16_module_4_activity.svg" alt="图 5-25 成绩适配模块活动 UML 图"><figcaption>图 5-25 成绩适配模块活动 UML 图</figcaption></figure>
+<p>成绩适配模块活动 UML 图用于说明面向国际留学生的信息管理系统中成绩适配模块从页面入口、权限判断、接口调用、业务处理、数据读写到结果展示的完整活动流程。该图由 PlantUML 生成，适合支撑详细设计中输入输出、处理流程和异常处理说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/26_module_4_state.svg" alt="图 5-26 成绩适配模块状态 UML 图"><figcaption>图 5-26 成绩适配模块状态 UML 图</figcaption></figure>
+<p>成绩适配模块状态 UML 图用于说明面向国际留学生的信息管理系统中成绩适配模块从页面待访问、会话检查、数据加载、参数校验、业务处理、结果展示到异常提示的状态变化。该图由 PlantUML 生成，用于补充详细设计中的异常处理和状态控制说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/35_module_4_component.svg" alt="图 5-27 成绩适配模块组件协作 UML 图"><figcaption>图 5-27 成绩适配模块组件协作 UML 图</figcaption></figure>
+<p>成绩适配模块组件协作 UML 图用于说明面向国际留学生的信息管理系统中成绩适配模块的页面入口、前端逻辑、API Client、认证权限中间件、业务路由、业务校验和数据对象之间的协作方式。该图由 PlantUML 生成，用于补充详细设计中的组件职责和调用边界。</p>
+<figure class="diagram"><img src="../assets/diagrams/36_module_4_data.svg" alt="图 5-28 成绩适配模块数据关系 UML 图"><figcaption>图 5-28 成绩适配模块数据关系 UML 图</figcaption></figure>
+<p>成绩适配模块数据关系 UML 图用于说明面向国际留学生的信息管理系统中成绩适配模块请求参数、响应结果和核心数据对象之间的关系。该图由 PlantUML 生成，数据对象来自 grade_records、grade_rules、external_schools，用于补充详细设计中的数据流转和结果组装说明。</p>
+<p>成绩适配模块的处理流程首先由用户在页面中触发操作，前端读取会话状态并组织请求参数；后端通过认证与角色权限中间件判断访问资格，再进入模块路由完成参数校验和业务处理。若数据查询或写入成功，页面展示业务结果；若出现未登录、越权、参数缺失或数据不存在，页面展示明确的异常状态。</p>
+<p>异常处理方面，成绩适配模块需要覆盖接口不可达、数据库连接异常、用户权限不足、表单字段缺失和返回数据为空等情况。前端应提供空状态、加载状态、错误提示或回退路径，后端应保持统一响应格式和可追溯日志。</p>
+<h3>5.10 风险查询模块详细设计</h3>
+<p>风险查询模块面向教师、管理员，主要提供签证、成绩、学习和住宿风险聚合查询。该模块的输入包括登录会话、页面查询条件、业务表单参数和分页条件，输出包括列表数据、详情数据、统计结果、提交结果或异常提示。模块对应接口或页面为 /api/management/risks，核心数据对象为 visas、grade_records、study_records、dormitories。</p>
+<figure class="diagram"><img src="../assets/diagrams/17_module_5_use_case.svg" alt="图 5-29 风险查询模块用例 UML 图"><figcaption>图 5-29 风险查询模块用例 UML 图</figcaption></figure>
+<p>风险查询模块用例 UML 图用于说明面向国际留学生的信息管理系统中教师、管理员围绕签证、成绩、学习和住宿风险聚合查询形成的主要功能入口和业务动作。该图由 PlantUML 生成，图中用例来自已核验模块职责和接口路径 /api/management/risks，用于放入详细设计正文。</p>
+<figure class="diagram"><img src="../assets/diagrams/18_module_5_sequence.svg" alt="图 5-30 风险查询模块时序 UML 图"><figcaption>图 5-30 风险查询模块时序 UML 图</figcaption></figure>
+<p>风险查询模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/management/risks 的请求处理链路和 visas、grade_records、study_records、dormitories 的数据读写关系。</p>
+<figure class="diagram"><img src="../assets/diagrams/19_module_5_activity.svg" alt="图 5-31 风险查询模块活动 UML 图"><figcaption>图 5-31 风险查询模块活动 UML 图</figcaption></figure>
+<p>风险查询模块活动 UML 图用于说明面向国际留学生的信息管理系统中风险查询模块从页面入口、权限判断、接口调用、业务处理、数据读写到结果展示的完整活动流程。该图由 PlantUML 生成，适合支撑详细设计中输入输出、处理流程和异常处理说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/27_module_5_state.svg" alt="图 5-32 风险查询模块状态 UML 图"><figcaption>图 5-32 风险查询模块状态 UML 图</figcaption></figure>
+<p>风险查询模块状态 UML 图用于说明面向国际留学生的信息管理系统中风险查询模块从页面待访问、会话检查、数据加载、参数校验、业务处理、结果展示到异常提示的状态变化。该图由 PlantUML 生成，用于补充详细设计中的异常处理和状态控制说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/37_module_5_component.svg" alt="图 5-33 风险查询模块组件协作 UML 图"><figcaption>图 5-33 风险查询模块组件协作 UML 图</figcaption></figure>
+<p>风险查询模块组件协作 UML 图用于说明面向国际留学生的信息管理系统中风险查询模块的页面入口、前端逻辑、API Client、认证权限中间件、业务路由、业务校验和数据对象之间的协作方式。该图由 PlantUML 生成，用于补充详细设计中的组件职责和调用边界。</p>
+<figure class="diagram"><img src="../assets/diagrams/38_module_5_data.svg" alt="图 5-34 风险查询模块数据关系 UML 图"><figcaption>图 5-34 风险查询模块数据关系 UML 图</figcaption></figure>
+<p>风险查询模块数据关系 UML 图用于说明面向国际留学生的信息管理系统中风险查询模块请求参数、响应结果和核心数据对象之间的关系。该图由 PlantUML 生成，数据对象来自 visas、grade_records、study_records、dormitories，用于补充详细设计中的数据流转和结果组装说明。</p>
+<p>风险查询模块的处理流程首先由用户在页面中触发操作，前端读取会话状态并组织请求参数；后端通过认证与角色权限中间件判断访问资格，再进入模块路由完成参数校验和业务处理。若数据查询或写入成功，页面展示业务结果；若出现未登录、越权、参数缺失或数据不存在，页面展示明确的异常状态。</p>
+<p>异常处理方面，风险查询模块需要覆盖接口不可达、数据库连接异常、用户权限不足、表单字段缺失和返回数据为空等情况。前端应提供空状态、加载状态、错误提示或回退路径，后端应保持统一响应格式和可追溯日志。</p>
+<h3>5.11 统计分析模块详细设计</h3>
+<p>统计分析模块面向教师、管理员，主要提供学生数、教师数、签证预警和成绩异常统计。该模块的输入包括登录会话、页面查询条件、业务表单参数和分页条件，输出包括列表数据、详情数据、统计结果、提交结果或异常提示。模块对应接口或页面为 /api/management/dashboard，核心数据对象为 students、teachers、visas、grade_records。</p>
+<figure class="diagram"><img src="../assets/diagrams/20_module_6_use_case.svg" alt="图 5-35 统计分析模块用例 UML 图"><figcaption>图 5-35 统计分析模块用例 UML 图</figcaption></figure>
+<p>统计分析模块用例 UML 图用于说明面向国际留学生的信息管理系统中教师、管理员围绕学生数、教师数、签证预警和成绩异常统计形成的主要功能入口和业务动作。该图由 PlantUML 生成，图中用例来自已核验模块职责和接口路径 /api/management/dashboard，用于放入详细设计正文。</p>
+<figure class="diagram"><img src="../assets/diagrams/21_module_6_sequence.svg" alt="图 5-36 统计分析模块时序 UML 图"><figcaption>图 5-36 统计分析模块时序 UML 图</figcaption></figure>
+<p>统计分析模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/management/dashboard 的请求处理链路和 students、teachers、visas、grade_records 的数据读写关系。</p>
+<figure class="diagram"><img src="../assets/diagrams/22_module_6_activity.svg" alt="图 5-37 统计分析模块活动 UML 图"><figcaption>图 5-37 统计分析模块活动 UML 图</figcaption></figure>
+<p>统计分析模块活动 UML 图用于说明面向国际留学生的信息管理系统中统计分析模块从页面入口、权限判断、接口调用、业务处理、数据读写到结果展示的完整活动流程。该图由 PlantUML 生成，适合支撑详细设计中输入输出、处理流程和异常处理说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/28_module_6_state.svg" alt="图 5-38 统计分析模块状态 UML 图"><figcaption>图 5-38 统计分析模块状态 UML 图</figcaption></figure>
+<p>统计分析模块状态 UML 图用于说明面向国际留学生的信息管理系统中统计分析模块从页面待访问、会话检查、数据加载、参数校验、业务处理、结果展示到异常提示的状态变化。该图由 PlantUML 生成，用于补充详细设计中的异常处理和状态控制说明。</p>
+<figure class="diagram"><img src="../assets/diagrams/39_module_6_component.svg" alt="图 5-39 统计分析模块组件协作 UML 图"><figcaption>图 5-39 统计分析模块组件协作 UML 图</figcaption></figure>
+<p>统计分析模块组件协作 UML 图用于说明面向国际留学生的信息管理系统中统计分析模块的页面入口、前端逻辑、API Client、认证权限中间件、业务路由、业务校验和数据对象之间的协作方式。该图由 PlantUML 生成，用于补充详细设计中的组件职责和调用边界。</p>
+<figure class="diagram"><img src="../assets/diagrams/40_module_6_data.svg" alt="图 5-40 统计分析模块数据关系 UML 图"><figcaption>图 5-40 统计分析模块数据关系 UML 图</figcaption></figure>
+<p>统计分析模块数据关系 UML 图用于说明面向国际留学生的信息管理系统中统计分析模块请求参数、响应结果和核心数据对象之间的关系。该图由 PlantUML 生成，数据对象来自 students、teachers、visas、grade_records，用于补充详细设计中的数据流转和结果组装说明。</p>
+<p>统计分析模块的处理流程首先由用户在页面中触发操作，前端读取会话状态并组织请求参数；后端通过认证与角色权限中间件判断访问资格，再进入模块路由完成参数校验和业务处理。若数据查询或写入成功，页面展示业务结果；若出现未登录、越权、参数缺失或数据不存在，页面展示明确的异常状态。</p>
+<p>异常处理方面，统计分析模块需要覆盖接口不可达、数据库连接异常、用户权限不足、表单字段缺失和返回数据为空等情况。前端应提供空状态、加载状态、错误提示或回退路径，后端应保持统一响应格式和可追溯日志。</p>
+<h2>6 数据设计</h2>
+<h3>6.1 数据对象关系</h3>
+<figure class="diagram"><img src="../assets/diagrams/04_data_object.svg" alt="图 6-1 数据对象关系 UML 图"><figcaption>图 6-1 数据对象关系 UML 图</figcaption></figure>
+<p>数据对象关系图展示系统核心表之间的关联。不同项目的数据表名称存在差异，但均围绕用户、角色、业务主数据、记录数据、统计数据和日志数据展开，能够支撑页面展示和接口处理。</p>
+<h3>6.2 主要数据对象说明</h3>
+<table><thead><tr><th>模块</th><th>核心数据对象</th><th>用途</th></tr></thead><tbody><tr><td>认证与角色模块</td><td>users</td><td>支撑统一登录、JWT 签发、角色鉴权和会话保持等业务功能。</td></tr><tr><td>学生档案模块</td><td>students、classes、nationalities</td><td>支撑本人档案查询、学生列表和学生基础信息管理等业务功能。</td></tr><tr><td>教师管理模块</td><td>teachers、users</td><td>支撑教师列表、教师工号、学院和教师类型维护等业务功能。</td></tr><tr><td>成绩适配模块</td><td>grade_records、grade_rules、external_schools</td><td>支撑外部成绩录入、规则适配、审核和学生成绩查询等业务功能。</td></tr><tr><td>风险查询模块</td><td>visas、grade_records、study_records、dormitories</td><td>支撑签证、成绩、学习和住宿风险聚合查询等业务功能。</td></tr><tr><td>统计分析模块</td><td>students、teachers、visas、grade_records</td><td>支撑学生数、教师数、签证预警和成绩异常统计等业务功能。</td></tr></tbody></table>
+<h3>6.3 数据一致性设计</h3>
+<p>系统通过用户身份和业务对象编号保持数据一致性。新增、修改、提交和查询操作都围绕核心数据对象展开，后端在写入前进行参数校验，在返回前统一组织响应字段。对于学习记录、成绩记录、日志记录和风险记录等可追溯数据，系统应保留创建时间、更新时间、用户编号或业务关联编号，便于后续统计和审计。</p>
+<h2>7 接口设计</h2>
+<p>本文档中只列出关键业务接口。</p>
+<table><thead><tr><th>用途</th><th>调用方</th><th>接口</th><th>参数</th><th>返回</th><th>脱敏示例</th></tr></thead><tbody><tr><td>用户登录</td><td>登录页面</td><td>POST /api/auth/login</td><td>username、password</td><td>token、user</td><td>{ &quot;username&quot;: &quot;student01&quot;, &quot;password&quot;: &quot;***&quot; }</td></tr><tr><td>本人档案</td><td>学生端档案页</td><td>GET /api/students/me</td><td>Authorization</td><td>student profile</td><td>Authorization: Bearer ***</td></tr><tr><td>学生列表</td><td>教师/管理员学生管理页</td><td>GET /api/students</td><td>Authorization</td><td>students[]</td><td>/api/students</td></tr><tr><td>教师列表</td><td>管理员教师管理页</td><td>GET /api/teachers</td><td>Authorization</td><td>teachers[]</td><td>/api/teachers</td></tr><tr><td>成绩适配列表</td><td>成绩适配管理页</td><td>GET /api/grades</td><td>Authorization</td><td>grade_records[]</td><td>/api/grades</td></tr><tr><td>风险查询</td><td>风险查询页</td><td>GET /api/management/risks</td><td>Authorization</td><td>summary、items</td><td>/api/management/risks</td></tr></tbody></table>
+<h3>7.1 用户登录接口说明</h3>
+<p>用途：用户登录用于支撑登录页面中的核心业务动作。调用方：登录页面。参数：username、password。返回：token、user。脱敏示例：{ &quot;username&quot;: &quot;student01&quot;, &quot;password&quot;: &quot;***&quot; }。该接口调用时需要根据页面状态准备必要参数，后端执行身份校验、参数校验和业务处理，最后返回统一 JSON 结构给前端页面。</p>
+<h3>7.2 本人档案接口说明</h3>
+<p>用途：本人档案用于支撑学生端档案页中的核心业务动作。调用方：学生端档案页。参数：Authorization。返回：student profile。脱敏示例：Authorization: Bearer ***。该接口调用时需要根据页面状态准备必要参数，后端执行身份校验、参数校验和业务处理，最后返回统一 JSON 结构给前端页面。</p>
+<h3>7.3 学生列表接口说明</h3>
+<p>用途：学生列表用于支撑教师/管理员学生管理页中的核心业务动作。调用方：教师/管理员学生管理页。参数：Authorization。返回：students[]。脱敏示例：/api/students。该接口调用时需要根据页面状态准备必要参数，后端执行身份校验、参数校验和业务处理，最后返回统一 JSON 结构给前端页面。</p>
+<h3>7.4 教师列表接口说明</h3>
+<p>用途：教师列表用于支撑管理员教师管理页中的核心业务动作。调用方：管理员教师管理页。参数：Authorization。返回：teachers[]。脱敏示例：/api/teachers。该接口调用时需要根据页面状态准备必要参数，后端执行身份校验、参数校验和业务处理，最后返回统一 JSON 结构给前端页面。</p>
+<h3>7.5 成绩适配列表接口说明</h3>
+<p>用途：成绩适配列表用于支撑成绩适配管理页中的核心业务动作。调用方：成绩适配管理页。参数：Authorization。返回：grade_records[]。脱敏示例：/api/grades。该接口调用时需要根据页面状态准备必要参数，后端执行身份校验、参数校验和业务处理，最后返回统一 JSON 结构给前端页面。</p>
+<h3>7.6 风险查询接口说明</h3>
+<p>用途：风险查询用于支撑风险查询页中的核心业务动作。调用方：风险查询页。参数：Authorization。返回：summary、items。脱敏示例：/api/management/risks。该接口调用时需要根据页面状态准备必要参数，后端执行身份校验、参数校验和业务处理，最后返回统一 JSON 结构给前端页面。</p>
+<h2>8 运行与部署设计</h2>
+<h3>8.1 环境准备</h3>
+<p>准备 Linux 本机服务器、Node.js、npm、MySQL、Chromium 浏览器和 PDF 导出工具。数据库地址、口令、令牌密钥和接口地址使用环境变量配置，文档中统一脱敏。</p>
+<h3>8.2 硬件条件</h3>
+<p>建议运行环境为 2 核及以上 CPU、4GB 及以上内存、20GB 及以上磁盘空间；开发和批量截图导出环境建议 4 核及以上 CPU、16GB 内存和可用图形/无头浏览器运行环境。</p>
+<h3>8.3 部署步骤 1</h3>
+<p>安装项目依赖，确认 `package.json` 中的运行脚本可执行；前后端分离项目需分别安装前端和后端依赖。</p>
+<h3>8.4 部署步骤 2</h3>
+<p>初始化数据库，执行建表、基础数据和种子数据脚本，确保用户、角色、业务数据和测试数据存在。</p>
+<h3>8.5 部署步骤 3</h3>
+<p>启动后端服务并构建或启动前端服务，通过本机浏览器访问页面，执行登录、列表、提交、查询和截图检查。</p>
+<h3>8.6 关键脚本、端口、防火墙和启动检查</h3>
+<table><thead><tr><th>项目</th><th>内容</th></tr></thead><tbody><tr><td>关键脚本</td><td>npm run build、npm run start、db:init、db:seed、seed:test-data 等项目脚本</td></tr><tr><td>端口</td><td>后端本机端口 3013，前端或页面端口 3013</td></tr><tr><td>防火墙</td><td>本机截图阶段使用本机回环地址；外部访问时仅开放必要前端或后端端口</td></tr><tr><td>启动检查</td><td>检查端口监听、健康接口、登录接口、首页 HTTP 200、截图文件和 PDF 页数</td></tr></tbody></table>
+<h2>9 安全与权限设计</h2>
+<p>1. 身份认证与访问入口控制：系统通过登录接口校验账号密码，成功后签发令牌或保存会话，未登录用户不能访问受保护页面和接口。</p>
+<p>2. 角色权限与业务数据访问控制：系统根据学生、教师或管理员角色限制页面入口和接口范围，普通用户只能访问本人相关数据，管理角色访问统计、列表和后台查询。</p>
+<p>3. 数据安全、脱敏、日志审计与异常处理：数据库口令、令牌密钥、真实主机、账号密码、手机号和邮箱在软著材料中统一脱敏，后台对请求异常进行捕获并保留可追溯的运行信息。</p>
+<h2>10 测试与验证</h2>
+<table><thead><tr><th>测试类别</th><th>关键用例</th><th>验证要点</th></tr></thead><tbody><tr><td>UI 交互测试</td><td>重新采集 H5 竖屏截图和桌面管理截图</td><td>页面真实渲染、视口校准、表单和数据区域可见</td></tr><tr><td>功能测试</td><td>登录、列表查询、业务提交、统计查询、错题/风险/记录查询</td><td>接口返回正常，页面可以展示数据</td></tr><tr><td>安全测试</td><td>未登录访问、角色限制、敏感信息脱敏</td><td>受保护页面和接口需要令牌，文档不暴露真实敏感信息</td></tr><tr><td>部署测试</td><td>端口监听、数据库初始化、前端构建和 PDF 导出</td><td>服务可启动，PDF 页数满足 55-60 或裁剪规则</td></tr></tbody></table>
+<h3>10.1 H5 中文登录页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/01_h5_login_zh.png" alt="图 10-1 H5 中文登录页"><figcaption>图 10-1 H5 中文登录页</figcaption></figure>
+<p>该截图文件为 01_h5_login_zh.png，对应说明文件为 01_h5_login_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 中文登录页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.2 H5 英文登录页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/02_h5_login_en.png" alt="图 10-2 H5 英文登录页"><figcaption>图 10-2 H5 英文登录页</figcaption></figure>
+<p>该截图文件为 02_h5_login_en.png，对应说明文件为 02_h5_login_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 英文登录页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.3 H5 学生中文档案页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/03_h5_student_profile_zh.png" alt="图 10-3 H5 学生中文档案页"><figcaption>图 10-3 H5 学生中文档案页</figcaption></figure>
+<p>该截图文件为 03_h5_student_profile_zh.png，对应说明文件为 03_h5_student_profile_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 学生中文档案页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.4 H5 学生中文成绩适配页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/04_h5_student_grades_zh.png" alt="图 10-4 H5 学生中文成绩适配页"><figcaption>图 10-4 H5 学生中文成绩适配页</figcaption></figure>
+<p>该截图文件为 04_h5_student_grades_zh.png，对应说明文件为 04_h5_student_grades_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 学生中文成绩适配页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.5 H5 学生中文学习情况页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/05_h5_student_learning_zh.png" alt="图 10-5 H5 学生中文学习情况页"><figcaption>图 10-5 H5 学生中文学习情况页</figcaption></figure>
+<p>该截图文件为 05_h5_student_learning_zh.png，对应说明文件为 05_h5_student_learning_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 学生中文学习情况页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.6 H5 学生英文档案页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/06_h5_student_profile_en.png" alt="图 10-6 H5 学生英文档案页"><figcaption>图 10-6 H5 学生英文档案页</figcaption></figure>
+<p>该截图文件为 06_h5_student_profile_en.png，对应说明文件为 06_h5_student_profile_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 学生英文档案页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.7 H5 学生英文成绩页界面验证</h3>
+<figure class="h5shot"><img src="../assets/screenshots/07_h5_student_grades_en.png" alt="图 10-7 H5 学生英文成绩页"><figcaption>图 10-7 H5 学生英文成绩页</figcaption></figure>
+<p>该截图文件为 07_h5_student_grades_en.png，对应说明文件为 07_h5_student_grades_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的H5 学生英文成绩页在真实运行环境中可访问，并按移动端 H5 竖屏视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.8 管理端中文统计页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/08_admin_dashboard_zh.png" alt="图 10-8 管理端中文统计页"><figcaption>图 10-8 管理端中文统计页</figcaption></figure>
+<p>该截图文件为 08_admin_dashboard_zh.png，对应说明文件为 08_admin_dashboard_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的管理端中文统计页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.9 管理端中文学生列表页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/09_admin_students_zh.png" alt="图 10-9 管理端中文学生列表页"><figcaption>图 10-9 管理端中文学生列表页</figcaption></figure>
+<p>该截图文件为 09_admin_students_zh.png，对应说明文件为 09_admin_students_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的管理端中文学生列表页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.10 管理端中文教师列表页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/10_admin_teachers_zh.png" alt="图 10-10 管理端中文教师列表页"><figcaption>图 10-10 管理端中文教师列表页</figcaption></figure>
+<p>该截图文件为 10_admin_teachers_zh.png，对应说明文件为 10_admin_teachers_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的管理端中文教师列表页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.11 管理端中文成绩适配页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/11_admin_grades_zh.png" alt="图 10-11 管理端中文成绩适配页"><figcaption>图 10-11 管理端中文成绩适配页</figcaption></figure>
+<p>该截图文件为 11_admin_grades_zh.png，对应说明文件为 11_admin_grades_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的管理端中文成绩适配页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.12 管理端中文风险查询页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/12_admin_risks_zh.png" alt="图 10-12 管理端中文风险查询页"><figcaption>图 10-12 管理端中文风险查询页</figcaption></figure>
+<p>该截图文件为 12_admin_risks_zh.png，对应说明文件为 12_admin_risks_zh.txt。截图用于验证面向国际留学生的信息管理系统V1.0的管理端中文风险查询页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.13 教师端英文统计页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/13_teacher_dashboard_en.png" alt="图 10-13 教师端英文统计页"><figcaption>图 10-13 教师端英文统计页</figcaption></figure>
+<p>该截图文件为 13_teacher_dashboard_en.png，对应说明文件为 13_teacher_dashboard_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的教师端英文统计页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.14 教师端英文学生列表页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/14_teacher_students_en.png" alt="图 10-14 教师端英文学生列表页"><figcaption>图 10-14 教师端英文学生列表页</figcaption></figure>
+<p>该截图文件为 14_teacher_students_en.png，对应说明文件为 14_teacher_students_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的教师端英文学生列表页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.15 教师端英文成绩页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/15_teacher_grades_en.png" alt="图 10-15 教师端英文成绩页"><figcaption>图 10-15 教师端英文成绩页</figcaption></figure>
+<p>该截图文件为 15_teacher_grades_en.png，对应说明文件为 15_teacher_grades_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的教师端英文成绩页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h3>10.16 教师端英文风险页界面验证</h3>
+<figure class="screen"><img src="../assets/screenshots/16_teacher_risks_en.png" alt="图 10-16 教师端英文风险页"><figcaption>图 10-16 教师端英文风险页</figcaption></figure>
+<p>该截图文件为 16_teacher_risks_en.png，对应说明文件为 16_teacher_risks_en.txt。截图用于验证面向国际留学生的信息管理系统V1.0的教师端英文风险页在真实运行环境中可访问，并按桌面管理页面横向视口校准。截图中的标题、导航、表单、列表、统计或业务结果区域可用于对应 UI 交互测试和功能测试。</p>
+<h2>11 结论</h2>
+<p>面向国际留学生的信息管理系统V1.0围绕留学生学习、教学或管理场景形成了前端页面、后端接口、数据库结构、运行脚本、截图材料和设计图示等完整设计内容。系统章节覆盖需求概要、总体架构、详细设计、数据设计、接口设计、部署设计、安全权限和测试验证，能够说明软件的功能范围、技术结构、运行方式和交付状态。</p></body></html>

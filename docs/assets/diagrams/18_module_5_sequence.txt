@@ -1,0 +1,1 @@
+风险查询模块时序 UML 图用于说明用户、前端页面、请求封装、认证权限中间件、业务路由和数据对象之间的调用顺序。该图由 PlantUML 生成，展示 /api/management/risks 的请求处理链路和 visas、grade_records、study_records、dormitories 的数据读写关系。

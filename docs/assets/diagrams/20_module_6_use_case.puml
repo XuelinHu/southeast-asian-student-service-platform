@@ -1,0 +1,38 @@
+@startuml
+title 面向国际留学生的信息管理系统统计分析模块用例图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+left to right direction
+actor "教师用户" as Teacher
+actor "管理员" as Admin
+rectangle "统计分析模块" {
+  usecase "学生数" as UC6_0
+  usecase "教师数" as UC6_1
+  usecase "签证预警和成绩异常统计" as UC6_2
+  usecase "访问management/dashboard" as UC6_api
+}
+Teacher --> UC6_0
+Teacher --> UC6_1
+Teacher --> UC6_2
+Teacher --> UC6_api
+Admin --> UC6_0
+Admin --> UC6_1
+Admin --> UC6_2
+Admin --> UC6_api
+@enduml

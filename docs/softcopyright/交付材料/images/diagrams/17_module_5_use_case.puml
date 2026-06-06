@@ -1,0 +1,38 @@
+@startuml
+title 面向国际留学生的信息管理系统风险查询模块用例图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+left to right direction
+actor "教师用户" as Teacher
+actor "管理员" as Admin
+rectangle "风险查询模块" {
+  usecase "签证" as UC5_0
+  usecase "成绩" as UC5_1
+  usecase "学习和住宿风险聚合查询" as UC5_2
+  usecase "访问management/risks" as UC5_api
+}
+Teacher --> UC5_0
+Teacher --> UC5_1
+Teacher --> UC5_2
+Teacher --> UC5_api
+Admin --> UC5_0
+Admin --> UC5_1
+Admin --> UC5_2
+Admin --> UC5_api
+@enduml

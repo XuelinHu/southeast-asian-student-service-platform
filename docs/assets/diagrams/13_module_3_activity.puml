@@ -1,0 +1,39 @@
+@startuml
+title 面向国际留学生的信息管理系统教师管理模块活动图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+start
+:管理员进入教师管理模块页面;
+:读取登录状态和页面参数;
+if (是否具备访问权限?) then (是)
+  :调用/api/teachers/*;
+  :后端校验请求参数;
+  :围绕teachers、users执行业务处理;
+  if (处理成功?) then (是)
+    :返回教师列表、教师工号、学院和教师类型维护结果;
+    :页面展示业务数据和操作反馈;
+  else (否)
+    :返回错误提示;
+    :页面展示异常状态;
+  endif
+else (否)
+  :跳转登录或提示权限不足;
+endif
+stop
+@enduml

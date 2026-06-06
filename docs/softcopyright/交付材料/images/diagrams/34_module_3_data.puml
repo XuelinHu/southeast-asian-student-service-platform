@@ -1,0 +1,45 @@
+@startuml
+title 面向国际留学生的信息管理系统教师管理模块数据关系图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+class "教师管理模块请求参数" as Req {
+  +userId
+  +query
+  +payload
+}
+class "教师管理模块响应结果" as Res {
+  +code
+  +message
+  +data
+}
+class "teachers" as D0 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "users" as D1 {
+  +id
+  +业务字段
+  +时间字段
+}
+Req --> D0 : /api/teachers/*
+Req --> D1 : /api/teachers/*
+D0 --> D1 : 教师列表、教师工号、学院和教师类型维护
+D0 --> Res : 组装返回
+@enduml

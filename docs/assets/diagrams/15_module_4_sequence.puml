@@ -1,0 +1,37 @@
+@startuml
+title 面向国际留学生的信息管理系统成绩适配模块时序图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+actor "学生用户" as User
+participant "前端页面" as UI
+participant "请求封装" as API
+participant "认证/权限中间件" as Auth
+participant "成绩适配模块路由" as Route
+database "grade_records、grade_rules、external_schools" as DB
+User -> UI : 发起成绩适配模块操作
+UI -> API : 组织参数并调用/api/grades/*
+API -> Auth : 携带会话或令牌
+Auth -> Route : 权限通过后转发请求
+Route -> Route : 校验外部成绩录入、规则适配、审核和学生成绩查询
+Route -> DB : 查询或写入核心数据
+DB --> Route : 返回业务数据
+Route --> API : 返回统一 JSON 结果
+API --> UI : 更新页面状态
+UI --> User : 展示列表、统计或提交结果
+@enduml

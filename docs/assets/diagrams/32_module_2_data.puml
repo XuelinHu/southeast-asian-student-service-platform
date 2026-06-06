@@ -1,0 +1,52 @@
+@startuml
+title 面向国际留学生的信息管理系统学生档案模块数据关系图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+class "学生档案模块请求参数" as Req {
+  +userId
+  +query
+  +payload
+}
+class "学生档案模块响应结果" as Res {
+  +code
+  +message
+  +data
+}
+class "students" as D0 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "classes" as D1 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "nationalities" as D2 {
+  +id
+  +业务字段
+  +时间字段
+}
+Req --> D0 : /api/students/*
+Req --> D1 : /api/students/*
+Req --> D2 : /api/students/*
+D0 --> D1 : 本人档案查询、学生列表和学生基础信息管理
+D1 --> D2 : 本人档案查询、学生列表和学生基础信息管理
+D0 --> Res : 组装返回
+@enduml

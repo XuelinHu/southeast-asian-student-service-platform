@@ -1,0 +1,33 @@
+@startuml
+title 面向国际留学生的信息管理系统教师管理模块用例图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+left to right direction
+actor "管理员" as Admin
+rectangle "教师管理模块" {
+  usecase "教师列表" as UC3_0
+  usecase "教师工号" as UC3_1
+  usecase "学院和教师类型维护" as UC3_2
+  usecase "访问teachers/接口" as UC3_api
+}
+Admin --> UC3_0
+Admin --> UC3_1
+Admin --> UC3_2
+Admin --> UC3_api
+@enduml

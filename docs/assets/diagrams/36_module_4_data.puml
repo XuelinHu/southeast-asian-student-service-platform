@@ -1,0 +1,52 @@
+@startuml
+title 面向国际留学生的信息管理系统成绩适配模块数据关系图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+class "成绩适配模块请求参数" as Req {
+  +userId
+  +query
+  +payload
+}
+class "成绩适配模块响应结果" as Res {
+  +code
+  +message
+  +data
+}
+class "grade_records" as D0 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "grade_rules" as D1 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "external_schools" as D2 {
+  +id
+  +业务字段
+  +时间字段
+}
+Req --> D0 : /api/grades/*
+Req --> D1 : /api/grades/*
+Req --> D2 : /api/grades/*
+D0 --> D1 : 外部成绩录入、规则适配、审核和学生成绩查询
+D1 --> D2 : 外部成绩录入、规则适配、审核和学生成绩查询
+D0 --> Res : 组装返回
+@enduml

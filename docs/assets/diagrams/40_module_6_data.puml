@@ -1,0 +1,59 @@
+@startuml
+title 面向国际留学生的信息管理系统统计分析模块数据关系图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+class "统计分析模块请求参数" as Req {
+  +userId
+  +query
+  +payload
+}
+class "统计分析模块响应结果" as Res {
+  +code
+  +message
+  +data
+}
+class "students" as D0 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "teachers" as D1 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "visas" as D2 {
+  +id
+  +业务字段
+  +时间字段
+}
+class "grade_records" as D3 {
+  +id
+  +业务字段
+  +时间字段
+}
+Req --> D0 : /api/management/dashboard
+Req --> D1 : /api/management/dashboard
+Req --> D2 : /api/management/dashboard
+Req --> D3 : /api/management/dashboard
+D0 --> D1 : 学生数、教师数、签证预警和成绩异常统计
+D1 --> D2 : 学生数、教师数、签证预警和成绩异常统计
+D2 --> D3 : 学生数、教师数、签证预警和成绩异常统计
+D0 --> Res : 组装返回
+@enduml

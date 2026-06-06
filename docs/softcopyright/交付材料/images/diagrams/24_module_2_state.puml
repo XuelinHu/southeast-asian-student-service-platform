@@ -1,0 +1,34 @@
+@startuml
+title 面向国际留学生的信息管理系统学生档案模块状态图
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #3C5488
+skinparam ActorBorderColor #3C5488
+skinparam ActorFontColor #111827
+skinparam UsecaseBorderColor #0072B2
+skinparam UsecaseBackgroundColor #F8FBFF
+skinparam ComponentBorderColor #0072B2
+skinparam ComponentBackgroundColor #F8FBFF
+skinparam DatabaseBorderColor #009E73
+skinparam DatabaseBackgroundColor #F4FFF9
+skinparam SequenceLifeLineBorderColor #3C5488
+skinparam ParticipantBorderColor #0072B2
+skinparam ParticipantBackgroundColor #F8FBFF
+skinparam ActivityBorderColor #0072B2
+skinparam ActivityBackgroundColor #F8FBFF
+
+[*] --> 页面待访问
+页面待访问 --> 会话检查 : 学生、教师、管理员进入页面
+会话检查 --> 权限不足 : 未登录或越权
+会话检查 --> 数据加载 : 权限通过
+数据加载 --> 参数校验 : 提交查询或表单
+参数校验 --> 业务处理中 : 参数有效
+参数校验 --> 异常提示 : 参数缺失
+业务处理中 --> 结果展示 : 本人档案查询、学生列表和学生基础信息管理成功
+业务处理中 --> 异常提示 : 接口或数据异常
+结果展示 --> 页面待访问 : 切换页面或刷新
+异常提示 --> 页面待访问 : 重新操作
+权限不足 --> [*]
+结果展示 --> [*]
+@enduml
