@@ -1,5 +1,13 @@
 # 面向国际留学生的信息管理系统 V1.0
 
+<p align="center">
+  <img height="20" alt="Express 4.19.2" src="https://img.shields.io/badge/express-4.19.2-000000" />
+  <img height="20" alt="MySQL configured" src="https://img.shields.io/badge/mysql-configured-4479A1" />
+  <img height="20" alt="Helmet 7.1.0" src="https://img.shields.io/badge/helmet-7.1.0-000000" />
+  <img height="20" alt="JWT 9.0.2" src="https://img.shields.io/badge/jsonwebtoken-9.0.2-D63AFF" />
+  <img height="20" alt="License GPL-2.0" src="https://img.shields.io/badge/license-GPL--2.0-3DA639" />
+</p>
+
 前台使用 H5，后台使用 Node.js + Express，数据库使用 MySQL。
 
 ## 功能范围
