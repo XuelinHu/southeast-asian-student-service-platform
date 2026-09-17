@@ -40,7 +40,7 @@ app.use((error, req, res, next) => {
 });
 
 if (require.main === module) {
-  const port = Number(process.env.PORT || 3000);
+  const port = Number(process.env.PORT || 8034);
   app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
   });

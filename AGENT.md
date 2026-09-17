@@ -8,8 +8,8 @@
 
 ## Runtime
 
-- Service port: `3000` from `.env.example` `PORT`.
-- Local URL: `http://localhost:3000`.
+- Service port: `8034` from `.env.example` `PORT`.
+- Local URL: `http://localhost:8034`.
 - Dev: `npm run dev`.
 - Start: `npm start`.
 - Init DB: `npm run db:init`.
