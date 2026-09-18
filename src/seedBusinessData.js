@@ -24,24 +24,37 @@ async function execute(sql, params = {}) {
   await pool.execute(sql, params);
 }
 
+// 角色 id 从 roles 表按 code 反查，不在种子数据里写死数字：
+// 角色表的 id 由迁移播种顺序决定，写死会在角色增删后静默指错角色。
+async function roleId(code) {
+  const [rows] = await pool.execute('SELECT id FROM roles WHERE code = :code LIMIT 1', { code });
+  if (!rows.length) {
+    throw new Error(`roles 表里没有 ${code}，请先执行 npm run db:migrate 播种内置角色`);
+  }
+  return rows[0].id;
+}
+
 async function seedUsers() {
+  const teacherRoleId = await roleId('teacher');
+  const studentRoleId = await roleId('student');
+
   await execute(
-    `INSERT INTO users (id, username, password_hash, role, display_name, status)
-     VALUES (1, 'admin', :passwordHash, 'admin', 'System Admin', 'active')
+    `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
+     VALUES (1, 'admin', :passwordHash, :roleId, 'System Admin', 'active')
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), status = 'active'`,
-    { passwordHash }
+    { passwordHash, roleId: await roleId('super_admin') }
   );
 
   for (let i = 1; i <= 120; i += 1) {
     await execute(
-      `INSERT INTO users (id, username, password_hash, role, display_name, status)
-       VALUES (:id, :username, :passwordHash, :role, :displayName, 'active')
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = VALUES(role), display_name = VALUES(display_name), status = 'active'`,
+      `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
+       VALUES (:id, :username, :passwordHash, :roleId, :displayName, 'active')
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role_id = VALUES(role_id), display_name = VALUES(display_name), status = 'active'`,
       {
         id: 1000 + i,
         username: `teacher${pad(i)}`,
         passwordHash,
-        role: 'teacher',
+        roleId: teacherRoleId,
         displayName: `Teacher ${pad(i)}`
       }
     );
@@ -49,13 +62,14 @@ async function seedUsers() {
 
   for (let i = 1; i <= 180; i += 1) {
     await execute(
-      `INSERT INTO users (id, username, password_hash, role, display_name, status)
-       VALUES (:id, :username, :passwordHash, 'student', :displayName, 'active')
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'student', display_name = VALUES(display_name), status = 'active'`,
+      `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
+       VALUES (:id, :username, :passwordHash, :roleId, :displayName, 'active')
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role_id = VALUES(role_id), display_name = VALUES(display_name), status = 'active'`,
       {
         id: 2000 + i,
         username: `student${pad(i)}`,
         passwordHash,
+        roleId: studentRoleId,
         displayName: `International Student ${pad(i)}`
       }
     );
@@ -66,11 +80,13 @@ async function seedNationalities() {
   for (let i = 1; i <= 120; i += 1) {
     const code = `${countryCodes[(i - 1) % countryCodes.length]}${pad(Math.ceil(i / countryCodes.length), 2)}`;
     await execute(
-      `INSERT INTO nationalities (id, country_code, name_zh, name_en, continent, primary_language, timezone)
-       VALUES (:id, :countryCode, :nameZh, :nameEn, 'Asia-Pacific', :language, :timezone)
+      `INSERT INTO nationalities
+         (id, country_code, name_zh, name_en, continent, primary_language, timezone, status, sort_order)
+       VALUES (:id, :countryCode, :nameZh, :nameEn, 'Asia-Pacific', :language, :timezone, 'active', :sortOrder)
        ON DUPLICATE KEY UPDATE name_zh = VALUES(name_zh), name_en = VALUES(name_en), primary_language = VALUES(primary_language), timezone = VALUES(timezone)`,
       {
         id: i,
+        sortOrder: i,
         countryCode: code,
         nameZh: `国际生来源地${pad(i)}`,
         nameEn: `International Region ${pad(i)}`,

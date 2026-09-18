@@ -212,6 +212,15 @@ code {
   font-size: 28px;
 }
 
+/* metric() 会给 <strong> 加 warning/danger class，之前没有对应规则（死样式） */
+.metric strong.warning {
+  color: var(--warning);
+}
+
+.metric strong.danger {
+  color: var(--danger);
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr);
@@ -267,6 +276,137 @@ code {
   color: var(--danger);
 }
 
+.status.ok {
+  background: #e7f3ef;
+  color: var(--accent-dark);
+}
+
+.muted-badge {
+  background: #eef1f4;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ 通用按钮补充 */
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.danger-button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--danger);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.danger-button:hover {
+  filter: brightness(0.92);
+}
+
+/* ------------------------------------------------------------------ 弹窗与提示条
+   门户页、管理台、智能体弹框都用这一套，所以放在共享样式里 */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(21, 39, 60, 0.36);
+}
+
+.modal-card {
+  width: min(420px, 100%);
+  padding: 22px;
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.modal-message {
+  margin-bottom: 18px;
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-actions button {
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.toast-host {
+  position: fixed;
+  right: 20px;
+  /* 抬到智能体悬浮球上方。球是 position: fixed 钉在右下角的（桌面 24px 边距、
+     实测 108×46；手机 14px 边距、圆形 46×46），提示条原来也在右下角 20px，
+     两者正好叠在一起——提示条 z-index 100 压在球上，球上的「智能体」三个字
+     被盖掉一截，看着像界面画错了。抬到 80px，桌面球顶在 70px、手机球顶在
+     60px，都让得开。这也是 Material 对 snackbar 与 FAB 的规定：提示条要在
+     悬浮球之上，不是之下。没有球的时候提示条只是浮得高一点，无害。 */
+  bottom: 80px;
+  z-index: 100;
+  display: grid;
+  gap: 8px;
+}
+
+.toast {
+  max-width: 340px;
+  padding: 11px 15px;
+  border-radius: 7px;
+  background: #22303c;
+  color: #ffffff;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-ok {
+  background: var(--accent-dark);
+}
+
+.toast-error {
+  background: var(--danger);
+}
+
+.toast-warning {
+  background: var(--warning);
+}
+
+/* 门户里的翻页条（我的成绩）。管理台那套 .pagination 在 admin.css，两处布局不同 */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pager button {
+  min-height: 40px;
+}
+
 .profile-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -297,10 +437,18 @@ code {
     flex-direction: column;
   }
 
+  /* minmax(0, 1fr) 而不是 1fr：1fr 等价于 minmax(auto, 1fr)，而 auto 作为
+     最小值取的是**内容的最小尺寸**。成绩表有 6 列，窄屏下本来靠
+     .portal-table-scroll 的 overflow-x: auto 横向滚动（portal.css 里写着
+     "页面本身不横滚"），可这个 auto 最小值把滚动容器顶了回去——整页被撑到
+     435px 宽，390px 的手机上右边一截全在屏幕外，卡片、表格、按钮都被切掉。
+     实测：改成 minmax(0, 1fr) 后 layout viewport 回到 390，表格在自己的
+     容器里横滚，页面不再横滚。这个坑和打印排版里那个 flex 子项最小尺寸
+     是同一个：**只要是可收缩的布局项，最小值就得显式清零**。 */
   .summary-grid,
   .content-grid,
   .profile-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .login-panel {

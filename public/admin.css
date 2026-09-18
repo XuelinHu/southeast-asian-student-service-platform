@@ -1,0 +1,587 @@
+/* 管理台专属布局。基础 token 与通用组件（按钮、输入框、徽章）沿用 styles.css */
+
+.admin-body {
+  background: var(--bg);
+}
+
+/* 按钮、弹窗、提示条、徽章等共享组件在 styles.css 里 */
+
+/* ------------------------------------------------------------------ 登录闸门 */
+
+.admin-gate {
+  width: min(520px, calc(100% - 32px));
+  margin: 80px auto;
+  padding: 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* ------------------------------------------------------------------ 骨架 */
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 16px;
+  background: #ffffff;
+  border-right: 1px solid var(--line);
+}
+
+/* 宽屏下侧边栏常驻，汉堡按钮与遮罩都不需要（窄屏规则在文件末尾的媒体查询里） */
+.sidebar-toggle {
+  display: none;
+}
+
+.sidebar-brand strong {
+  font-size: 15px;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.nav-group-title {
+  margin: 0 0 6px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nav-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: #f2f5f7;
+}
+
+.nav-item.active {
+  background: var(--surface-strong);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.admin-main {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 22px clamp(16px, 3vw, 32px) 28px;
+  min-width: 0;
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.admin-topbar-title h2 {
+  margin-bottom: 2px;
+}
+
+.admin-topbar-title p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ 工具栏 */
+
+.admin-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.toolbar-search {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.toolbar-search input {
+  width: 100%;
+  min-height: 40px;
+}
+
+.toolbar-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.inline-field {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inline-field select {
+  min-height: 40px;
+  min-width: 108px;
+  width: auto;
+}
+
+.filter-field {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 132px;
+}
+
+.filter-field select,
+.filter-field input {
+  min-height: 40px;
+}
+
+/* ------------------------------------------------------------------ 表格 */
+
+.admin-table-panel {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 320px);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f9fa;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-table th.sortable:hover {
+  color: var(--accent-dark);
+}
+
+.admin-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.admin-table td.cell-actions {
+  position: sticky;
+  right: 0;
+  background: inherit;
+  box-shadow: -8px 0 8px -8px rgba(21, 39, 60, 0.25);
+}
+
+.admin-table thead th.cell-actions {
+  background: #f7f9fa;
+}
+
+.row-action {
+  min-height: 28px;
+  padding: 3px 9px;
+  margin-right: 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.row-action:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.row-action.danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.table-placeholder {
+  padding: 40px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ 分页 */
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  /* 右侧留出智能体悬浮球的宽度。浮球是 position: fixed（right/bottom: 24px、
+     实测 108×46），分页条落在同一个右下角，右边距只有 16px 时浮球会盖住
+     「下一页」——列表翻页正好被自己的助手按钮挡住。留 132px = 108 宽 + 24 边距。 */
+  padding: 12px 132px 12px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-controls button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-controls input {
+  width: 62px;
+  min-height: 34px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ 抽屉表单 */
+
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(21, 39, 60, 0.32);
+}
+
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(560px, 100%);
+  height: 100%;
+  background: var(--surface);
+  box-shadow: -14px 0 34px rgba(21, 39, 60, 0.18);
+}
+
+.drawer-header,
+.drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.drawer-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.drawer-footer {
+  border-top: 1px solid var(--line);
+}
+
+.drawer-header h3 {
+  margin-bottom: 0;
+}
+
+.drawer-body {
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.drawer-form {
+  display: grid;
+  gap: 14px;
+}
+
+.drawer-form label {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.drawer-form .required-mark {
+  color: var(--danger);
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 18px;
+}
+
+/* ------------------------------------------------------------------ 权限矩阵 */
+
+/* 六个勾选列比普通表单宽，抽屉本身也要放宽，否则教师类型只能挤成一列 */
+.drawer-wide {
+  width: min(760px, 100%);
+}
+
+.perm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.perm-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--surface-strong);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* 矩阵比抽屉宽时在容器内横向滚动，不撑破页面 */
+.perm-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.perm-table th,
+.perm-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.perm-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-strong);
+  font-weight: 700;
+}
+
+.perm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 分组行只做视觉切分，不参与勾选 */
+.perm-group td {
+  background: #f2f5f8;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.perm-table td:first-child {
+  white-space: normal;
+  min-width: 120px;
+}
+
+.perm-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.perm-cell {
+  text-align: center;
+  width: 56px;
+}
+
+.perm-cell input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* 未授权查看的行整体压暗，一眼能看出这个角色进不去这个菜单 */
+.perm-row-off td:first-child,
+.perm-row-off .perm-cell {
+  color: var(--muted);
+}
+
+.perm-teacher {
+  text-align: left;
+  width: auto;
+}
+
+.perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.perm-chip input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* 触控目标不小于 44×44：手机上勾选框本身太小，靠格子撑开点击区域 */
+@media (pointer: coarse) {
+  .perm-cell {
+    width: 64px;
+  }
+
+  .perm-cell input[type='checkbox'] {
+    width: 22px;
+    height: 22px;
+  }
+
+  .perm-table th,
+  .perm-table td {
+    padding: 12px 10px;
+  }
+}
+
+/* ------------------------------------------------------------------ 响应式 */
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  /* 侧边栏改抽屉：14 个菜单横着排会挤成一条滚不到头的带子，
+     竖着叠进抽屉里反而好点。默认左移出屏，opened 时滑进来。 */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: min(80vw, 280px);
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    padding-top: calc(22px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .admin-sidebar.opened {
+    transform: none;
+    box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+  }
+
+  /* 抽屉展开时压住正文，点一下关掉，避免"菜单开着但不知道能关" */
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgb(15 23 42 / 42%);
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    flex: 0 0 auto;
+  }
+
+  .sidebar-nav {
+    display: grid;
+    gap: 14px;
+  }
+
+  .nav-group-title {
+    display: block;
+  }
+
+  /* 手机上手指比鼠标粗，菜单项要够高才好点 */
+  .nav-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .toolbar-actions {
+    margin-left: 0;
+  }
+
+  .table-scroll {
+    max-height: none;
+  }
+}

@@ -1,0 +1,425 @@
+/* 智能体悬浮按钮与弹框。门户页和管理台共用，所以单独一个文件。 */
+
+.agent-root {
+  position: fixed;
+  inset: auto 0 0 auto;
+  z-index: 60;
+}
+
+/* ---------------------------------------------------------------- 悬浮按钮 */
+
+.agent-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(31, 122, 109, 0.32);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.agent-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(31, 122, 109, 0.4);
+}
+
+.agent-fab-icon {
+  font-size: 18px;
+}
+
+/* ------------------------------------------------------------------ 弹框 */
+
+.agent-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(17, 24, 39, 0.45);
+  z-index: 70;
+}
+
+.agent-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(820px, 100%);
+  height: min(760px, 90vh);
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(15, 30, 50, 0.28);
+  overflow: hidden;
+}
+
+.agent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-strong);
+}
+
+.agent-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.agent-title strong {
+  font-size: 16px;
+}
+
+.agent-subtitle {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-subtitle.warning {
+  color: var(--warning);
+}
+
+.agent-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agent-model {
+  max-width: 320px;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13px;
+  /* 模型名 + 参数规模 + 量化 + 显存占用拼起来很长，选中项放不下时给省略号 */
+  text-overflow: ellipsis;
+}
+
+.agent-ghost {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 13px;
+  /* 窄屏下按钮组整体换行，别让「加载模型」被拆成两行 */
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.agent-ghost:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.agent-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.agent-ghost.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- 消息区 */
+
+.agent-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 88%;
+}
+
+.agent-msg-user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.agent-msg-bot {
+  align-self: flex-start;
+}
+
+.agent-bubble {
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.65;
+  word-break: break-word;
+}
+
+.agent-msg-user .agent-bubble {
+  background: var(--accent);
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+
+.agent-msg-bot .agent-bubble {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 2px;
+}
+
+.agent-bubble p {
+  margin: 0 0 8px;
+}
+
+.agent-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.agent-bubble ul,
+.agent-bubble ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.agent-bubble li {
+  margin-bottom: 3px;
+}
+
+.agent-typing {
+  color: var(--muted);
+}
+
+.agent-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.agent-error {
+  margin: 0;
+  color: var(--danger);
+}
+
+/* 思考过程：qwen3 这类模型纯调工具时 content 为空、输出全在 thinking 里，
+   不展示的话用户会对着空白干等 */
+.agent-thinking {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-thinking summary {
+  padding: 6px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.agent-thinking-body {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0 10px 8px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.agent-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agent-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.agent-chip.ok {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.agent-chip.fail {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+/* ------------------------------------------------------------------ 输入 */
+
+.agent-footer {
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.agent-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.agent-input-row textarea {
+  flex: 1;
+  resize: none;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.agent-input-row textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.agent-mic,
+.agent-send {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.agent-mic {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  font-size: 18px;
+}
+
+.agent-mic:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.agent-mic.active {
+  border-color: var(--danger);
+  background: #fdecea;
+  animation: agent-pulse 1.2s ease-in-out infinite;
+}
+
+.agent-mic:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@keyframes agent-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(180, 35, 24, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(180, 35, 24, 0); }
+}
+
+.agent-send {
+  border: none;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.agent-send:disabled {
+  background: var(--muted);
+  cursor: not-allowed;
+}
+
+.agent-status {
+  min-height: 18px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-status.error {
+  color: var(--danger);
+}
+
+.agent-status.warning {
+  color: var(--warning);
+}
+
+/* ---------------------------------------------------------------- 窄屏 */
+
+@media (max-width: 720px) {
+  .agent-fab {
+    right: 14px;
+    /* 让开手机的home指示条，否则按钮会被系统手势区盖住一半 */
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 12px 14px;
+  }
+
+  .agent-fab-text {
+    display: none;
+  }
+
+  .agent-overlay {
+    padding: 0;
+  }
+
+  /* 全屏底部抽屉。用 dvh 而不是 % 或 vh：手机浏览器的地址栏与软键盘会
+     改变可视高度，dvh 跟着变，输入框才不会被键盘顶到屏幕外面去。 */
+  .agent-modal {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* 手机上按钮密排，逐个撑到 44×44 才点得准 */
+  .agent-header-actions button,
+  .agent-input-row button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .agent-input-row {
+    align-items: flex-end;
+  }
+
+  .agent-input-row textarea {
+    /* iOS 上字号小于 16px 会在聚焦时自动放大页面，放大后布局就乱了 */
+    font-size: 16px;
+  }
+
+  /* 窄屏把模型下拉压成弹性的，按钮组不换行，否则 ✕ 会单独占一行 */
+  .agent-header-actions {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .agent-model {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .agent-msg {
+    max-width: 96%;
+  }
+}

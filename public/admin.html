@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover：刘海屏下让页面铺满，配合 CSS 的 safe-area 内边距
+         interactive-widget=resizes-content：软键盘弹出时压缩视口而不是盖住输入框 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>管理台 · 留学生信息管理系统</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/admin.css" />
+    <link rel="stylesheet" href="/agent.css" />
+  </head>
+  <body class="admin-body">
+    <!-- 未登录 / 无权限时显示 -->
+    <section class="admin-gate" id="adminGate">
+      <div class="panel-title">
+        <h2>管理台</h2>
+        <p class="muted" id="gateMessage">正在校验登录状态…</p>
+      </div>
+      <div class="actions">
+        <a class="primary-button button-link" href="/">返回门户登录</a>
+      </div>
+    </section>
+
+    <!-- 窄屏下侧边栏收成抽屉，这两块负责开关与遮罩；宽屏时都被 CSS 藏起来 -->
+    <div class="sidebar-scrim hidden" id="sidebarScrim"></div>
+
+    <div class="admin-shell hidden" id="adminShell">
+      <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-brand">
+          <p class="eyebrow">V1.0 管理台</p>
+          <strong>留学生信息管理系统</strong>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+      </aside>
+
+      <div class="admin-main">
+        <header class="admin-topbar">
+          <button class="ghost-button sidebar-toggle" id="sidebarToggle" aria-label="打开菜单" aria-expanded="false">
+            <span aria-hidden="true">☰</span>
+          </button>
+          <div class="admin-topbar-title">
+            <h2 id="viewTitle">—</h2>
+            <p class="muted" id="viewSubtitle"></p>
+          </div>
+          <div class="actions">
+            <span class="status" id="userBadge">—</span>
+            <a class="ghost-button button-link" href="/">门户首页</a>
+            <button class="ghost-button" id="logoutBtn">退出</button>
+          </div>
+        </header>
+
+        <section class="admin-toolbar" id="adminToolbar">
+          <div class="toolbar-search">
+            <input type="search" id="searchInput" placeholder="输入关键词搜索" />
+          </div>
+          <div class="toolbar-filters" id="toolbarFilters"></div>
+          <div class="toolbar-actions">
+            <label class="inline-field">
+              <span>每页</span>
+              <select id="pageSizeSelect">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </label>
+            <button class="ghost-button" id="resetBtn">重置</button>
+            <button class="ghost-button" id="refreshBtn">刷新</button>
+            <button class="primary-button hidden" id="createBtn">新增</button>
+          </div>
+        </section>
+
+        <section class="admin-table-panel">
+          <div class="table-scroll" id="tableScroll"></div>
+          <footer class="admin-pagination" id="pagination"></footer>
+        </section>
+      </div>
+    </div>
+
+    <div id="drawerHost"></div>
+
+    <script type="module" src="/js/admin.js"></script>
+    <script type="module" src="/js/agent.js"></script>
+  </body>
+</html>

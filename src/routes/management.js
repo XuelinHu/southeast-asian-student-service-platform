@@ -1,18 +1,62 @@
 const express = require('express');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
+const { requireMenu } = require('../middleware/auth');
+const { parseListQuery, runPaginatedQuery } = require('../services/pagination');
+const { studentScope } = require('../services/scope');
+const riskQuery = require('../services/riskQuery');
+
+/** 把数据范围条件拼进 `WHERE ...` 之后的附加条件里；无范围限制时返回空串。 */
+function scopeAnd(scope, params) {
+  if (!scope) return '';
+  params.push(...scope.params);
+  return ` AND (${scope.sql})`;
+}
 
 const router = express.Router();
 
-router.get('/dashboard', auth(['admin', 'teacher']), async (req, res, next) => {
+const CLASS_LIST = {
+  selectColumns: 'c.id, c.code, c.name, c.college, c.major, c.enrollment_year, c.teacher_id, t.name AS teacher_name',
+  baseFrom: 'FROM classes c LEFT JOIN teachers t ON t.id = c.teacher_id',
+  primaryKeyColumn: 'c.id',
+  searchable: ['c.code', 'c.name', 'c.college', 'c.major'],
+  filters: {
+    college: { column: 'c.college', type: 'like' },
+    major: { column: 'c.major', type: 'like' },
+    teacherId: { column: 'c.teacher_id', type: 'int' },
+    enrollmentYear: { column: 'c.enrollment_year', type: 'int' }
+  },
+  sortable: { id: 'c.id', code: 'c.code', name: 'c.name', enrollmentYear: 'c.enrollment_year' },
+  defaultSort: 'c.id DESC'
+};
+
+// 概览的四项指标跟着数据范围走：教师看到的是自己班上的数字，不是全校的。
+// 否则会出现"概览说 181 个学生、点进列表只有 12 个"这种对不上的情况。
+router.get('/dashboard', auth(), requireMenu('students'), async (req, res, next) => {
   try {
-    const [[students]] = await pool.execute('SELECT COUNT(*) AS count FROM students');
-    const [[teachers]] = await pool.execute('SELECT COUNT(*) AS count FROM teachers');
-    const [[visaWarnings]] = await pool.execute(
-      'SELECT COUNT(*) AS count FROM visas WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)'
+    const scope = studentScope(req.user, 's');
+
+    const studentParams = [];
+    const [[students]] = await pool.query(
+      `SELECT COUNT(*) AS count FROM students s WHERE 1 = 1${scopeAnd(scope, studentParams)}`,
+      studentParams
     );
-    const [[gradeExceptions]] = await pool.execute(
-      "SELECT COUNT(*) AS count FROM grade_records WHERE adapt_status = 'exception'"
+
+    // 教师总数是师资编制口径，不按学生范围收窄
+    const [[teachers]] = await pool.execute('SELECT COUNT(*) AS count FROM teachers');
+
+    const visaParams = [];
+    const [[visaWarnings]] = await pool.query(
+      `SELECT COUNT(*) AS count FROM visas v JOIN students s ON s.id = v.student_id
+       WHERE v.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)${scopeAnd(scope, visaParams)}`,
+      visaParams
+    );
+
+    const gradeParams = [];
+    const [[gradeExceptions]] = await pool.query(
+      `SELECT COUNT(*) AS count FROM grade_records gr JOIN students s ON s.id = gr.student_id
+       WHERE gr.adapt_status = 'exception'${scopeAnd(scope, gradeParams)}`,
+      gradeParams
     );
 
     res.json({
@@ -26,22 +70,13 @@ router.get('/dashboard', auth(['admin', 'teacher']), async (req, res, next) => {
   }
 });
 
-router.get('/nationalities', auth(['admin', 'teacher', 'student']), async (req, res, next) => {
-  try {
-    const [rows] = await pool.execute('SELECT * FROM nationalities ORDER BY name_en');
-    res.json(rows);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/classes', auth(['admin', 'teacher']), async (req, res, next) => {
+// 国籍是下拉数据源（选国籍、筛国籍都从这里取），**有意不分页**：
+// 分页之后第 2 页起的国家在表单里就选不到了。全量字典表，行数天然有限。
+// 管理台的 /api/admin/nationalities 是分页的完整管理界面，两者用途不同。
+router.get('/nationalities', auth(), async (req, res, next) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT c.*, t.name AS teacher_name
-       FROM classes c
-       LEFT JOIN teachers t ON t.id = c.teacher_id
-       ORDER BY c.id DESC`
+      'SELECT * FROM nationalities WHERE status = \'active\' ORDER BY sort_order, name_en'
     );
     res.json(rows);
   } catch (error) {
@@ -49,70 +84,27 @@ router.get('/classes', auth(['admin', 'teacher']), async (req, res, next) => {
   }
 });
 
-router.get('/risks', auth(['admin', 'teacher']), async (req, res, next) => {
+router.get('/classes', auth(), requireMenu('classes'), async (req, res, next) => {
   try {
-    const [visaRisks] = await pool.execute(
-      `SELECT 'visa_expiring' AS risk_type, s.student_no, s.english_name, s.chinese_name,
-              v.expiry_date AS risk_date,
-              CONCAT('Visa expires on ', DATE_FORMAT(v.expiry_date, '%Y-%m-%d')) AS detail
-       FROM visas v
-       JOIN students s ON s.id = v.student_id
-       WHERE v.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)
-       ORDER BY v.expiry_date ASC
-       LIMIT 100`
+    const parsed = parseListQuery(req.query, CLASS_LIST);
+    res.json(await runPaginatedQuery(CLASS_LIST, parsed));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 风险清单：与管理台的 /api/admin/risks 共用 services/riskQuery.js 的同一份 SQL。
+// 这里只返回分页信封（不带 summary）——门户页要的是列表本身，指标卡归 dashboard 管。
+router.get('/risks', auth(), requireMenu('students'), async (req, res, next) => {
+  try {
+    res.json(
+      await riskQuery.listRisks({
+        riskType: typeof req.query.riskType === 'string' ? req.query.riskType : '',
+        keyword: String(req.query.q || '').trim().slice(0, 100),
+        page: req.query.page,
+        pageSize: req.query.pageSize
+      })
     );
-
-    const [gradeRisks] = await pool.execute(
-      `SELECT 'grade_exception' AS risk_type, s.student_no, s.english_name, s.chinese_name,
-              gr.created_at AS risk_date,
-              CONCAT(COALESCE(gr.course_name, 'Unknown course'), ': ', COALESCE(gr.exception_reason, gr.adapt_status)) AS detail
-       FROM grade_records gr
-       JOIN students s ON s.id = gr.student_id
-       WHERE gr.adapt_status = 'exception'
-       ORDER BY gr.created_at DESC
-       LIMIT 100`
-    );
-
-    const [lowScoreRisks] = await pool.execute(
-      `SELECT 'low_score' AS risk_type, s.student_no, s.english_name, s.chinese_name,
-              gr.created_at AS risk_date,
-              CONCAT(COALESCE(gr.course_name, 'Unknown course'), ': adapted score ', gr.adapted_score) AS detail
-       FROM grade_records gr
-       JOIN students s ON s.id = gr.student_id
-       WHERE gr.adapted_score IS NOT NULL AND gr.adapted_score < 60
-       ORDER BY gr.adapted_score ASC
-       LIMIT 100`
-    );
-
-    const [learningRisks] = await pool.execute(
-      `SELECT 'learning_warning' AS risk_type, s.student_no, s.english_name, s.chinese_name,
-              sr.recorded_at AS risk_date,
-              CONCAT(sr.course_name, ': ', sr.warning_level, ', attendance ', COALESCE(sr.attendance_rate, 0), '%') AS detail
-       FROM study_records sr
-       JOIN students s ON s.id = sr.student_id
-       WHERE sr.warning_level IN ('warning', 'serious') OR sr.attendance_rate < 70
-       ORDER BY sr.recorded_at DESC
-       LIMIT 100`
-    );
-
-    const [dormitoryRisks] = await pool.execute(
-      `SELECT 'dormitory_exception' AS risk_type, s.student_no, s.english_name, s.chinese_name,
-              d.check_out_date AS risk_date,
-              CONCAT(d.building, '-', d.room_no, '-', d.bed_no, ': ', d.status) AS detail
-       FROM dormitories d
-       JOIN students s ON s.id = d.student_id
-       WHERE d.status IN ('maintenance', 'reserved') OR d.check_out_date < CURDATE()
-       ORDER BY d.check_out_date ASC
-       LIMIT 100`
-    );
-
-    const items = [...visaRisks, ...gradeRisks, ...lowScoreRisks, ...learningRisks, ...dormitoryRisks];
-    const summary = items.reduce((acc, item) => {
-      acc[item.risk_type] = (acc[item.risk_type] || 0) + 1;
-      return acc;
-    }, {});
-
-    res.json({ summary, items });
   } catch (error) {
     next(error);
   }
