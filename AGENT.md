@@ -10,8 +10,8 @@
 ## Runtime
 
 - Service port: `8034` from `.env.example` `PORT`.
-- Local URL: `http://localhost:8034`.
-- Admin console: `http://localhost:8034/admin.html`.
+- Local URL: `http://localhost:4034`; backend API port remains `8034`.
+- Admin console: `http://localhost:4034/admin.html`.
 - Dev: `npm run dev`.
 - Start: `npm start`.
 - Init DB (建表 + 迁移): `npm run db:init`.
@@ -49,3 +49,7 @@
 ## GitHub Commit Language
 
 - Use English for all GitHub commit messages and pull/push related commit notes.
+
+## Port allocation
+
+Web: 4034. API/services: 8034. See `PORTS.md`; keep dev/preview ports fixed and fail on conflicts.

@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const { createWebServer } = require('./web-server');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -59,8 +60,19 @@ app.use((error, req, res, next) => {
 
 if (require.main === module) {
   const port = Number(process.env.PORT || 8034);
-  app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+  const webPort = Number(process.env.WEB_PORT || 4034);
+  const webServer = createWebServer(port);
+  const apiServer = app.listen(port, process.env.HOST || '0.0.0.0', () => {
+    console.log(`API running at http://127.0.0.1:${port}`);
+  });
+  for (const listener of [apiServer, webServer]) {
+    listener.on('error', (error) => {
+      console.error(`留学生服务启动失败：${error.code}`);
+      process.exit(1);
+    });
+  }
+  webServer.listen(webPort, process.env.HOST || '0.0.0.0', () => {
+    console.log(`Web running at http://localhost:${webPort}`);
   });
 }
 
