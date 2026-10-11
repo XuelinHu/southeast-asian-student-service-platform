@@ -1,8 +1,12 @@
+require('dotenv').config();
+const { getDemoSeedOptions, demoUserDuplicateUpdate } = require('./services/demoSeedPolicy');
+const seedOptions = getDemoSeedOptions();
 const bcrypt = require('bcryptjs');
 const pool = require('./config/db');
 const { adaptGrade } = require('./services/gradeAdapter');
 
-const passwordHash = bcrypt.hashSync('Admin@123', 10);
+const passwordHash = bcrypt.hashSync(seedOptions.password, 10);
+const userDuplicateUpdate = demoUserDuplicateUpdate(seedOptions.resetDemoPasswords);
 const countryCodes = [
   'TH', 'VN', 'MY', 'ID', 'PH', 'SG', 'LA', 'KH', 'MM', 'BN',
   'CN', 'JP', 'KR', 'IN', 'PK', 'BD', 'LK', 'NP', 'MN', 'KZ'
@@ -35,45 +39,35 @@ async function roleId(code) {
 }
 
 async function seedUsers() {
-  const teacherRoleId = await roleId('teacher');
-  const studentRoleId = await roleId('student');
+  const demoUsers = [
+    [1, 'admin', 'super_admin', 'System Admin'],
+    [2, 'teacher01', 'teacher', 'Teacher Demo'],
+    [3, 'student01', 'student', 'Student Demo'],
+    [4, 'academic01', 'academic_admin', 'Academic Admin'],
+    [5, 'welfare01', 'welfare_admin', 'Welfare Admin'],
+    [6, 'auditor01', 'auditor', 'Auditor Demo']
+  ];
 
-  await execute(
-    `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
-     VALUES (1, 'admin', :passwordHash, :roleId, 'System Admin', 'active')
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), status = 'active'`,
-    { passwordHash, roleId: await roleId('super_admin') }
-  );
+  for (const [id, username, roleCode, displayName] of demoUsers) {
+    await insertDemoUser(id, username, await roleId(roleCode), displayName);
+  }
 
   for (let i = 1; i <= 120; i += 1) {
-    await execute(
-      `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
-       VALUES (:id, :username, :passwordHash, :roleId, :displayName, 'active')
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role_id = VALUES(role_id), display_name = VALUES(display_name), status = 'active'`,
-      {
-        id: 1000 + i,
-        username: `teacher${pad(i)}`,
-        passwordHash,
-        roleId: teacherRoleId,
-        displayName: `Teacher ${pad(i)}`
-      }
-    );
+    await insertDemoUser(1000 + i, `teacher${pad(i)}`, await roleId('teacher'), `Teacher ${pad(i)}`);
   }
 
   for (let i = 1; i <= 180; i += 1) {
-    await execute(
-      `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
-       VALUES (:id, :username, :passwordHash, :roleId, :displayName, 'active')
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role_id = VALUES(role_id), display_name = VALUES(display_name), status = 'active'`,
-      {
-        id: 2000 + i,
-        username: `student${pad(i)}`,
-        passwordHash,
-        roleId: studentRoleId,
-        displayName: `International Student ${pad(i)}`
-      }
-    );
+    await insertDemoUser(2000 + i, `student${pad(i)}`, await roleId('student'), `International Student ${pad(i)}`);
   }
+}
+
+async function insertDemoUser(id, username, roleId, displayName) {
+  await execute(
+    `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
+     VALUES (:id, :username, :passwordHash, :roleId, :displayName, 'active')
+     ON DUPLICATE KEY UPDATE ${userDuplicateUpdate}`,
+    { id, username, passwordHash, roleId, displayName }
+  );
 }
 
 async function seedNationalities() {
@@ -429,7 +423,7 @@ async function main() {
   await seedGradeRecords();
   await seedDemoAliases();
   await pool.end();
-  console.log('Business seed data inserted.');
+  console.log(`Demo business data inserted.${seedOptions.resetDemoPasswords ? ' Existing demo passwords were explicitly reset.' : ''}`);
 }
 
 main().catch(async (error) => {

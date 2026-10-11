@@ -30,8 +30,9 @@ function escapeLike(value) {
 }
 
 function toPositiveInt(value, fallback, min, max) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return fallback;
+  if (value === undefined || value === null || String(value).trim() === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) return fallback;
   return Math.min(Math.max(parsed, min), max);
 }
 
@@ -130,8 +131,8 @@ function parseListQuery(query = {}, resource = {}, scope = null) {
     if (filter.values && !filter.values.includes(value)) continue;
 
     if (filter.type === 'int') {
-      const parsed = Number.parseInt(value, 10);
-      if (!Number.isFinite(parsed)) continue;
+      const parsed = Number(value);
+      if (!Number.isSafeInteger(parsed)) continue;
       clauses.push(`${filter.column} = ?`);
       params.push(parsed);
       continue;

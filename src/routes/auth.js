@@ -404,9 +404,13 @@ router.post('/change-password', auth(), async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// 退出登录（JWT 无状态，这里只记审计；如需强制下线可用改密自增 token_version）
+// 退出登录：递增 token_version，立即撤销该账号已签发的所有 token。
 // ---------------------------------------------------------------------------
 router.post('/logout', auth(), async (req, res) => {
+  await pool.execute(
+    'UPDATE users SET token_version = token_version + 1 WHERE id = :id',
+    { id: req.user.id }
+  );
   await recordLogin({
     userId: req.user.id,
     username: req.user.username,

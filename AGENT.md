@@ -16,7 +16,7 @@
 - Start: `npm start`.
 - Init DB (建表 + 迁移): `npm run db:init`.
 - Migrate only (幂等，已有库升级用): `npm run db:migrate`.
-- Seed data (幂等，日期相对运行当天，数据放旧了重跑即可刷新): `npm run db:seed`.
+- Seed data: opt-in only for isolated `_dev` / `_test` / `_demo` databases; requires a strong local `DEMO_SEED_PASSWORD`; production refuses it.
 
 ## Database
 
@@ -25,6 +25,8 @@
 - Env file: `.env` based on `.env.example`.
 - Variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `JWT_EXPIRES_IN`.
 - Schema: `database/schema.sql`.
+- Migration ledger: `schema_migrations` stores each migration name and SHA-256 of its implementation. Applied migrations are immutable; add a new migration instead of editing one that has been applied. MySQL DDL is not transactional, so each migration must remain idempotent and ledger insertion happens only after `up()` succeeds.
+- `MIGRATE_DRY_RUN=1` prints the migration plan and exits before opening a database connection; it must not execute SQL.
 - Keep real passwords only in local `.env`.
 - 删除测试数据要按外键顺序：`students`（被 dormitories / grade_records / study_records / visas 引用）
   → `login_logs` / `agent_messages` → `users`。

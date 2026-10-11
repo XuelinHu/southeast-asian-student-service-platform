@@ -86,15 +86,7 @@
 
 ## 数据库配置
 
-默认连接配置：
-
-```text
-host: 127.0.0.1
-port: 3306
-user: root
-password: Java@c1024
-database: international_student_platform
-```
+数据库连接只从本机 `.env` 读取，字段模板见 `.env.example`。不要把账号、密码或连接串写入 README、提交到 Git 或放进客户端包；曾在文档中出现的数据库凭据应在数据库端轮换。
 
 ## 环境变量
 
@@ -138,20 +130,46 @@ npm run db:init
 ```
 
 已有数据库升级时只跑迁移即可，它会查 `information_schema` 判断列/表是否存在，
-不存在才 `ALTER` / `CREATE`，可重复执行：
+不存在才 `ALTER` / `CREATE`。迁移版本、SHA-256 校验和与应用时间记录在
+`schema_migrations`；已记录版本被改写会停止，后续结构变化必须新增迁移。迁移执行由 MySQL
+advisory lock 串行化；失败迁移不会写入台账，重试依赖各迁移的幂等检查。
+
+只查看待执行迁移名称、不连接数据库：
+
+```bash
+MIGRATE_DRY_RUN=1 npm run db:migrate
+```
+
+正常应用：
 
 ```bash
 npm run db:migrate
 ```
 
-4. 写入业务关联测试数据。该脚本会让每张业务表不少于 100 条记录，并保持用户、学生、教师、
-班级、住宿、签证、学习、外部学校、成绩规则和成绩记录之间的业务关联。
-脚本是幂等的，且签证、住宿、学习记录的日期是**相对运行当天**计算的，
-数据放久了（签证预警变成 0）重跑一次即可把日期刷新到当下：
+4. 仅在隔离的开发/测试数据库中显式写入演示数据。生产环境禁止运行该命令；
+`db:init` 不会创建演示用户或重置任何口令。演示数据只能写入名称以 `_dev`、`_test`
+或 `_demo` 结尾的隔离数据库。需先在本地 `.env` 将 `DB_NAME` 改为隔离库名；
+`db:init` 会按此名称创建数据库。`DB_NAME` 与 `DEMO_SEED_DATABASE`
+必须完全相同，并设置 `ALLOW_DEMO_SEED=1` 和随机 `DEMO_SEED_PASSWORD`
+（至少 16 位，包含大小写字母、数字和符号），再运行：
 
 ```bash
 npm run db:seed
 ```
+
+重复运行会更新演示业务数据，但不改变已存在用户的口令、角色、显示名或状态。
+
+数据库集成测试仅允许显式设置 `RUN_DB_INTEGRATION=1`，并要求 `DB_NAME` 以 `_dev`、`_test`
+或 `_demo` 结尾、`NODE_ENV` 非 production，以及提供 `DEMO_SEED_PASSWORD`。测试会调用真实 API
+验证认证、角色权限、分页和登出。登出会递增用户的 `token_version`，因此该用户在所有设备上
+已签发的 token 都会立即失效；重新登录会签发新 token。
+
+```bash
+npm test
+RUN_DB_INTEGRATION=1 DB_NAME=student_dev NODE_ENV=test DEMO_SEED_PASSWORD='<强随机口令>' npm run test:db
+```
+只有确认是隔离测试库、且确实要重置 demo 账号密码时，才显式追加 `--reset-demo-passwords`。
+这些 demo 用户名只在 seed 中创建，初始化 schema 不会预置通用口令。
 
 5. 启动服务：
 
@@ -163,7 +181,7 @@ npm start
 
 ## 演示账号
 
-演示账号的初始密码均为 `Admin@123`。
+执行 opt-in 的开发/测试 seed 后会创建以下账号；初始口令由本地 `DEMO_SEED_PASSWORD` 提供，仓库不包含固定口令。
 
 ```text
 admin         超级管理员

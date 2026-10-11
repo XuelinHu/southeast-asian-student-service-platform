@@ -271,28 +271,6 @@ VALUES
   (5, 'teacher',        '教师',           'user',  'class', 0, 1, 5, '查看本人所带班级的学生，录入学习情况与成绩'),
   (6, 'student',        '留学生',         'user',  'self',  0, 1, 6, '留学生本人账号，可查询本人档案与成绩、使用智能体问答');
 
--- 演示账号。role_id 用 roles.code 反查，不写字面 id：角色顺序若调整，这里不会静默指错。
--- 每个内置角色各留一个演示账号：4 个管理角色的菜单差异要看得到才好验收。
--- 密码统一 Admin@123，登录后请立即修改。
-INSERT IGNORE INTO users (id, username, password_hash, role_id, display_name)
-VALUES
-  (1, 'admin', '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW',
-   (SELECT id FROM roles WHERE code = 'super_admin'), 'System Admin'),
-  (2, 'teacher01', '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW',
-   (SELECT id FROM roles WHERE code = 'teacher'), 'Teacher Demo'),
-  (3, 'student01', '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW',
-   (SELECT id FROM roles WHERE code = 'student'), 'Student Demo'),
-  (4, 'academic01', '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW',
-   (SELECT id FROM roles WHERE code = 'academic_admin'), 'Academic Admin Demo'),
-  (5, 'welfare01', '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW',
-   (SELECT id FROM roles WHERE code = 'welfare_admin'), 'Welfare Admin Demo'),
-  (6, 'auditor01', '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW',
-   (SELECT id FROM roles WHERE code = 'auditor'), 'Auditor Demo');
-
-UPDATE users
-SET password_hash = '$2a$10$JGOz7ZAw2wwr58Or4MCR6u/pZqPR0V321yii2Il3lXl24EIehaDrW'
-WHERE username IN ('admin', 'teacher01', 'student01', 'academic01', 'welfare01', 'auditor01');
-
 INSERT IGNORE INTO nationalities
   (id, country_code, name_zh, name_en, continent, primary_language, timezone, status, sort_order)
 VALUES

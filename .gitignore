@@ -15,3 +15,9 @@ coverage
 # 手册 PDF 里是真实运行界面。交付走 softright/ 目录本身，不靠 git 分发。
 # 与 .tmp/ 分开写：.tmp/ 是中间产物，这里是成品，混淆了两边都会漏。
 softright/
+
+/android/.gradle/
+/android/local.properties
+/android/app/build/
+/android/build/
+/dist/*.apk

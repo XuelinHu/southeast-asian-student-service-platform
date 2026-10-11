@@ -47,12 +47,24 @@ app.use((req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((error, req, res, next) => {
   const status = Number(error.status) || 500;
+  const parserError = error.type === 'entity.parse.failed' || error.type === 'entity.too.large';
   if (status >= 500) {
     console.error(error);
   }
   // 5xx 默认不暴露内部信息，但显式标了 expose 的错误（如"连不上本机 Ollama"）
   // 正是要给人看的运维提示，藏起来反而让人无从下手
-  const body = { message: status >= 500 && !error.expose ? 'Internal server error' : error.message };
+  const message =
+    error.type === 'entity.parse.failed'
+      ? 'JSON 格式不正确'
+      : error.type === 'entity.too.large'
+        ? '请求体超过允许大小'
+        : status >= 500 && !error.expose
+          ? 'Internal server error'
+          : error.message;
+  const body = {
+    message,
+    ...(parserError ? { code: error.type === 'entity.too.large' ? 'payload_too_large' : 'invalid_json' } : {})
+  };
   const retryAfter = res.get('Retry-After');
   if (retryAfter) body.retryAfter = Number(retryAfter);
   res.status(status).json(body);

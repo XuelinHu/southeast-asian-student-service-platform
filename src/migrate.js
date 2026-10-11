@@ -3,10 +3,13 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+const { runMigrationsWithLedger } = require('./services/migrationLedger');
+const { withMigrationLock } = require('./services/migrationLock');
+
 const { BUILTIN_ROLES, expandRoleMenus } = require('./config/roles');
 const { menuOrder } = require('./config/resources');
 
-// MIGRATE_DRY_RUN=1 只打印将要执行的列注释 DDL 而不执行，改表前可以先看一遍
+// MIGRATE_DRY_RUN=1 只列出迁移名称，不连接数据库或执行 SQL。
 const DRY_RUN = process.env.MIGRATE_DRY_RUN === '1';
 
 // 幂等迁移：每步先查 information_schema，已存在则跳过。
@@ -480,11 +483,7 @@ const migrations = [
         );
         const currentTableComment = meta.length ? meta[0].TABLE_COMMENT : null;
         if (tableComment && currentTableComment !== null && currentTableComment !== tableComment) {
-          if (DRY_RUN) {
-            console.log(`  [dry-run] ALTER TABLE \`${table}\` COMMENT = '${tableComment}'`);
-          } else {
-            await conn.query(`ALTER TABLE \`${table}\` COMMENT = ?`, [tableComment]);
-          }
+          await conn.query(`ALTER TABLE \`${table}\` COMMENT = ?`, [tableComment]);
           tablesApplied += 1;
         }
 
@@ -505,18 +504,14 @@ const migrations = [
             skipped += 1;
             continue;
           }
-          if (DRY_RUN) {
-            console.log(`  [dry-run] ALTER TABLE \`${table}\` MODIFY COLUMN \`${name}\` ${definition}`);
-          } else {
-            await conn.query(`ALTER TABLE \`${table}\` MODIFY COLUMN \`${name}\` ${definition}`);
-          }
+          await conn.query(`ALTER TABLE \`${table}\` MODIFY COLUMN \`${name}\` ${definition}`);
           applied += 1;
         }
       }
 
       console.log(
-        `  [${applied || tablesApplied ? (DRY_RUN ? 'dry-run' : 'apply') : 'skip'}] 注释：` +
-          `${DRY_RUN ? '待更新' : '更新'} ${tablesApplied} 张表注释、${applied} 列注释，跳过 ${skipped} 列`
+        `  [${applied || tablesApplied ? 'apply' : 'skip'}] 注释：` +
+          `更新 ${tablesApplied} 张表注释、${applied} 列注释，跳过 ${skipped} 列`
       );
     }
   }
@@ -581,24 +576,32 @@ function formatDefault(value) {
 }
 
 async function migrate() {
+  const db = process.env.DB_NAME || 'international_student_platform';
+  if (DRY_RUN) {
+    for (const migration of migrations) console.log(`[dry-run] would run ${migration.name}`);
+    return;
+  }
+  if (!process.env.DB_PASSWORD) {
+    throw new Error('DB_PASSWORD must be set in the local environment.');
+  }
+
   const connection = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'international_student_platform',
+    password: process.env.DB_PASSWORD,
+    database: db,
     multipleStatements: false
   });
 
   try {
-    const db = process.env.DB_NAME || 'international_student_platform';
     const [[{ version }]] = await connection.query('SELECT VERSION() AS version');
     console.log(`Migrating ${db} (MySQL ${version})`);
 
-    for (const migration of migrations) {
-      console.log(`\n${migration.name}`);
-      await migration.up(connection, db);
-    }
+    await withMigrationLock(connection, db, async () => {
+      const result = await runMigrationsWithLedger(connection, db, migrations);
+      console.log(`Applied ${result.applied.length}; skipped ${result.skipped.length} recorded migrations.`);
+    });
 
     console.log('\nMigration finished.');
   } finally {
