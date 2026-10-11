@@ -259,6 +259,23 @@ GET /api/admin/:resource?page=1&pageSize=20&keyword=&sortBy=&sortOrder=desc&<筛
 > 若哪天把该端口改成 frp 的 `http` 类型或在前面挂了网关，可以改用
 > `app.set('trust proxy', 'loopback')` 并直接按 `req.ip` 计数，**但那时也只能信任环回来源**。
 
+## 数据库备份与恢复
+
+使用 MySQL 一致性快照导出 InnoDB 表，数据经 gzip 和 AES-256-GCM 加密。请在本机 `.env` 设置独立 `DB_BACKUP_ENCRYPTION_KEY`（32 字节，即 64 位十六进制），并在密码管理器另存一份；密钥丢失后无法解密备份。快照包含平台标识，不能用于其他项目。默认输出在 `backups/`，不会覆盖已有文件。
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"  # 将输出写入 .env
+npm run db:backup
+```
+
+恢复只允许 `DB_NAME` 以 `_test` 结尾，必须明确使用 `--replace`，且目标库 schema 必须与快照完全匹配。工具会拒绝非 InnoDB 表、无主键表以及包含触发器/存储过程/事件的库，以免产生不完整快照。
+
+```powershell
+$env:DB_NAME = 'student_platform_restore_test'
+npm run db:init
+npm run db:restore -- --source .\backups\snapshot.seabak --replace
+```
+
 ## 核心接口
 
 **认证与个人中心**

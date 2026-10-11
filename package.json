@@ -11,6 +11,8 @@
     "test:db": "node --test test/database.integration.test.js",
     "db:init": "node src/initDb.js && node src/migrate.js",
     "db:migrate": "node src/migrate.js",
+    "db:backup": "node scripts/database-snapshot.mjs backup",
+    "db:restore": "node scripts/database-snapshot.mjs restore",
     "db:seed": "node src/seedBusinessData.js"
   },
   "dependencies": {
