@@ -37,6 +37,46 @@ test('health and static entrypoint respond without a database connection', async
   assert.equal(pageResponse.status, 200);
   assert.match(pageResponse.headers.get('content-type'), /text\/html/);
   assert.match(html, /<html/i);
+  assert.match(html, /id="oidcLogin"/);
+})
+
+test('OIDC start uses PKCE and callback rejects an invalid transaction before database access', async () => {
+  const configResponse = await fetch(`${baseUrl}/api/auth/oidc/config`);
+  const config = await configResponse.json();
+  assert.equal(configResponse.status, 200);
+  assert.equal(typeof config.clientId, 'string');
+  assert.ok(config.clientId.length > 0);
+  assert.match(config.issuer, /^https:\/\//);
+
+  const start = await fetch(`${baseUrl}/api/auth/oidc/start`, {
+    method: 'POST',
+    headers: { origin: baseUrl, 'content-type': 'application/json' },
+    body: JSON.stringify({ mode: 'login', redirectUri: `${baseUrl}/` })
+  });
+  const startBody = await start.json();
+  const cookie = start.headers.get('set-cookie') || '';
+  const authorize = new URL(startBody.authorizeUrl);
+  assert.equal(start.status, 200);
+  assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256');
+  assert.ok(authorize.searchParams.get('code_challenge'));
+  assert.match(cookie, /HttpOnly/i);
+  assert.match(cookie, /SameSite=Lax/i);
+
+  const unboundLink = await fetch(`${baseUrl}/api/auth/oidc/start`, {
+    method: 'POST',
+    headers: { origin: baseUrl, 'content-type': 'application/json' },
+    body: JSON.stringify({ mode: 'link', redirectUri: `${baseUrl}/` })
+  });
+  assert.equal(unboundLink.status, 401);
+
+  const invalid = await fetch(`${baseUrl}/api/auth/oidc/callback`, {
+    method: 'POST',
+    headers: { cookie: cookie.split(';')[0], 'content-type': 'application/json' },
+    body: JSON.stringify({ state: 'wrong-state', code: 'authorization-code' })
+  });
+  const body = await invalid.json();
+  assert.equal(invalid.status, 400);
+  assert.match(body.message, /状态无效/);
 })
 
 test('anonymous visitor receives a random HttpOnly SameSite cookie', async () => {

@@ -3,6 +3,40 @@
 
 import { state, api, esc, $, $$, toast, setSession, setLang, applyI18n, t } from './core.js';
 
+async function startOidc(mode) {
+  const result = await api('/api/auth/oidc/start', {
+    method: 'POST',
+    body: JSON.stringify({ mode, redirectUri: `${location.origin}${location.pathname}` })
+  });
+  location.assign(result.authorizeUrl);
+}
+
+async function completeOidcCallback() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  const error = params.get('error');
+  if (!code && !error) return;
+  history.replaceState(null, '', location.pathname);
+  const message = $('#oidcMessage');
+  try {
+    const result = await api('/api/auth/oidc/callback', {
+      method: 'POST', body: JSON.stringify({ code, state: params.get('state'), error })
+    });
+    if (result.linked) {
+      currentTab = 'account';
+      await renderApp();
+      message.textContent = '统一账号已绑定';
+      return;
+    }
+    setSession(result);
+    currentTab = roleTabs()[0];
+    await renderApp();
+  } catch (error) {
+    message.textContent = error.message || '统一账号登录失败';
+    toast(message.textContent, 'error');
+  }
+}
+
 let currentTab = null;
 
 const authArea = $('#authArea');
@@ -233,6 +267,7 @@ function gradesPager(result) {
 
 async function renderAccount() {
   const me = await api('/api/auth/me');
+  const oidc = await api('/api/auth/oidc/status');
   summaryGrid.innerHTML = [
     metric('账号', me.username),
     metric('角色', me.role),
@@ -251,6 +286,10 @@ async function renderAccount() {
     </form>`;
 
   sideView.innerHTML = `
+    <h3>统一账号</h3>
+    <p class="muted">${oidc.linked ? '已绑定' : '尚未绑定'}</p>
+    ${oidc.linked ? '' : '<button class="ghost-button" id="oidcLink" type="button">绑定统一账号</button>'}
+    <p class="message" id="oidcLinkMessage" aria-live="polite"></p>
     <h3>${esc(t('changePassword'))}</h3>
     <form class="account-form" id="passwordForm">
       <label><span>${esc(t('currentPassword'))}</span><input name="currentPassword" type="password" autocomplete="current-password" required /></label>
@@ -279,6 +318,13 @@ async function renderAccount() {
     } catch (error) {
       message.textContent = error.message;
     }
+  });
+
+  $('#oidcLink')?.addEventListener('click', async () => {
+    const message = $('#oidcLinkMessage');
+    message.textContent = '';
+    try { await startOidc('link'); }
+    catch (error) { message.textContent = error.message; }
   });
 
   $('#passwordForm').addEventListener('submit', async (event) => {
@@ -358,6 +404,13 @@ $('#loginForm').addEventListener('submit', async (event) => {
   }
 });
 
+$('#oidcLogin').addEventListener('click', async () => {
+  const message = $('#oidcMessage');
+  message.textContent = '';
+  try { await startOidc('login'); }
+  catch (error) { message.textContent = error.message; }
+});
+
 $('#registerForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
@@ -411,6 +464,7 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 applyI18n();
+await completeOidcCallback();
 if (state.session) {
   currentTab = roleTabs()[0];
   renderApp();

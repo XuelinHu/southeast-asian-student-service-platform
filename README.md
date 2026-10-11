@@ -6,6 +6,7 @@
   <img height="20" alt="pg driver" src="https://img.shields.io/badge/node--postgres-8.x-336791" />
   <img height="20" alt="Helmet 7.1.0" src="https://img.shields.io/badge/helmet-7.1.0-000000" />
   <img height="20" alt="JWT 9.0.2" src="https://img.shields.io/badge/jsonwebtoken-9.0.2-D63AFF" />
+  <img height="20" alt="OIDC jose 6.2.12" src="https://img.shields.io/badge/OIDC-jose%206.2.12-4B32C3" />
   <img height="20" alt="Ollama local LLM" src="https://img.shields.io/badge/ollama-local%20LLM-000000" />
   <img height="20" alt="License GPL-2.0" src="https://img.shields.io/badge/license-GPL--2.0-3DA639" />
 </p>
@@ -17,7 +18,7 @@
 
 **用户全流程**
 
-- 注册（可选同时建立学生档案）、登录、退出、修改密码、维护个人资料
+- 注册（可选同时建立学生档案）、本地登录与统一 OIDC 登录、显式绑定、退出、修改密码、维护个人资料
 - 登录写入审计日志，改密会使其他设备上的登录立即失效
 
 **管理台**（`/admin.html`）
@@ -142,6 +143,7 @@ psql -h 127.0.0.1 -p 5432 -U <部署管理员> -d postgres -f database/postgres/
 初始化 schema 与种子、角色菜单播种及 checksum ledger 在 PostgreSQL 事务和 advisory lock 中执行。
 `schema_migrations` 保存每版 SHA-256；已记录迁移被改写会失败，后续结构变化新增
 `database/postgres/migrations/*.sql` 文件。迁移 002 为业务查询建立索引；迁移 003 为 PostgreSQL 不会自动索引的外键引用列建立索引。
+迁移 004 增加 `users.oidc_subject` 和部分唯一索引。统一登录使用授权码 + PKCE，后端通过 Keycloak JWKS 验证 ID token、issuer、client audience 与 nonce；已有本地账号须先登录并显式绑定，不按用户名或邮箱自动合并。授权码交换和 token 验证由 API 服务端完成，部署时需让 Node 信任 issuer 的 TLS CA（可在进程启动前配置 `NODE_EXTRA_CA_CERTS`）。连接参数见 `.env.example` 中的 `OIDC_ISSUER`、`OIDC_CLIENT_ID`；HTTPS 反向代理部署应设置 `OIDC_COOKIE_SECURE=1`。
 
 只查看待执行迁移名称、不连接数据库：
 

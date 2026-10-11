@@ -1,4 +1,5 @@
 const express = require('express');
+const { createHash, randomBytes } = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
@@ -6,11 +7,188 @@ const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/auth');
 const auth = require('../middleware/auth');
 const { rateLimit } = require('../middleware/rateLimit');
 const { listResourcesForUser } = require('../config/resources');
+const { OIDC_ISSUER, OIDC_CLIENT_ID, verifyOidcIdToken } = require('../auth/oidc');
 
 const router = express.Router();
+const oidcTransactions = new Map();
 
 const BCRYPT_ROUNDS = 10;
 const MIN_PASSWORD_LENGTH = 8;
+
+function randomUrlToken() {
+  return randomBytes(32).toString('base64url');
+}
+
+function transactionCookie(req) {
+  const cookie = String(req.headers.cookie || '').split(';').map((part) => part.trim());
+  const value = cookie.find((part) => part.startsWith('oidc_tx='))?.slice('oidc_tx='.length) || '';
+  return /^[A-Za-z0-9_-]{40,60}$/.test(value) ? value : '';
+}
+
+function clearTransactionCookie(res) {
+  const secure = process.env.OIDC_COOKIE_SECURE === '1';
+  res.append('Set-Cookie', `oidc_tx=; HttpOnly; SameSite=Lax; Path=/api/auth/oidc; Max-Age=0${secure ? '; Secure' : ''}`);
+}
+
+function requireOidcCallbackSession(req, res, next) {
+  const key = transactionCookie(req);
+  const transaction = oidcTransactions.get(key);
+  if (!transaction || transaction.expiresAt <= Date.now() || req.body?.state !== transaction.state) {
+    if (key) oidcTransactions.delete(key);
+    clearTransactionCookie(res);
+    return res.status(400).json({ message: '统一账号登录状态无效或已过期' });
+  }
+  oidcTransactions.delete(key);
+  clearTransactionCookie(res);
+  req.oidcTransaction = transaction;
+  if (transaction.mode === 'link') {
+    return auth()(req, res, (error) => {
+      if (error) return next(error);
+      if (Number(req.user.id) !== Number(transaction.userId)) {
+        return res.status(403).json({ message: '发起绑定的本地账号已变化，请重新开始' });
+      }
+      next();
+    });
+  }
+  next();
+}
+
+router.get('/oidc/config', (_req, res) => {
+  res.json({ enabled: true, issuer: OIDC_ISSUER, clientId: OIDC_CLIENT_ID });
+});
+
+router.post('/oidc/start',
+  (req, res, next) => req.body?.mode === 'link' ? auth()(req, res, next) : next(),
+  rateLimit('oidc-start', { windowMs: 15 * 60 * 1000, max: 20, keyBy: 'visitor' }),
+  (req, res) => {
+    const { mode, redirectUri } = req.body || {};
+    if (!['login', 'link'].includes(mode)) return res.status(400).json({ message: '统一账号流程无效' });
+    let redirect;
+    try { redirect = new URL(redirectUri); }
+    catch { return res.status(400).json({ message: '回调地址无效' }); }
+    if (!req.get('origin') || redirect.origin !== req.get('origin') || redirect.pathname !== '/' || redirect.search || redirect.hash) {
+      return res.status(400).json({ message: '回调地址必须与当前站点一致' });
+    }
+
+    const now = Date.now();
+    for (const [key, value] of oidcTransactions) {
+      if (value.expiresAt <= now) oidcTransactions.delete(key);
+    }
+    if (oidcTransactions.size >= 1000) return res.status(503).json({ message: '统一登录暂不可用，请稍后重试' });
+
+    const state = randomUrlToken();
+    const nonce = randomUrlToken();
+    const verifier = randomUrlToken();
+    const challenge = createHash('sha256').update(verifier).digest('base64url');
+    const key = randomUrlToken();
+    oidcTransactions.set(key, {
+      mode, state, nonce, verifier, redirectUri: redirect.toString(),
+      userId: mode === 'link' ? req.user.id : null,
+      expiresAt: now + 10 * 60 * 1000
+    });
+    const secureCookie = req.secure || process.env.OIDC_COOKIE_SECURE === '1';
+    res.append('Set-Cookie', `oidc_tx=${key}; HttpOnly; SameSite=Lax; Path=/api/auth/oidc; Max-Age=600${secureCookie ? '; Secure' : ''}`);
+
+    const authorize = new URL(`${OIDC_ISSUER}/protocol/openid-connect/auth`);
+    authorize.search = new URLSearchParams({
+      client_id: OIDC_CLIENT_ID, redirect_uri: redirect.toString(), response_type: 'code',
+      scope: 'openid profile email', state, nonce,
+      code_challenge: challenge, code_challenge_method: 'S256'
+    });
+    res.json({ authorizeUrl: authorize.toString() });
+  }
+);
+
+async function linkOidcSubject(userId, subject) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [users] = await connection.execute(
+      `SELECT u.id, u.oidc_subject, r.status AS role_status
+       FROM users u JOIN roles r ON r.id = u.role_id
+       WHERE u.id = ? AND u.status = 'active' FOR UPDATE OF u`,
+      [userId]
+    );
+    const user = users[0];
+    if (!user) throw Object.assign(new Error('本项目账号不可用'), { status: 403 });
+    if (user.role_status !== 'active') throw Object.assign(new Error('本项目账号角色已停用'), { status: 403 });
+    if (user.oidc_subject && user.oidc_subject !== subject) throw Object.assign(new Error('本项目账号已绑定其他统一身份'), { status: 409 });
+    const [existing] = await connection.execute('SELECT id FROM users WHERE oidc_subject = ? AND id <> ?', [subject, userId]);
+    if (existing.length) throw Object.assign(new Error('此统一身份已绑定其他本项目账号'), { status: 409 });
+    await connection.execute('UPDATE users SET oidc_subject = ? WHERE id = ?', [subject, userId]);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback().catch(() => {});
+    if (error.code === '23505') throw Object.assign(new Error('此统一身份已绑定其他本项目账号'), { status: 409 });
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+router.post('/oidc/callback',
+  rateLimit('oidc-callback', { windowMs: 15 * 60 * 1000, max: 30, keyBy: 'visitor' }),
+  requireOidcCallbackSession,
+  async (req, res, next) => {
+    try {
+      if (req.body?.error || typeof req.body?.code !== 'string') {
+        return res.status(400).json({ message: '统一账号授权未完成' });
+      }
+      const transaction = req.oidcTransaction;
+      const tokenResponse = await fetch(`${OIDC_ISSUER}/protocol/openid-connect/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code', client_id: OIDC_CLIENT_ID,
+          redirect_uri: transaction.redirectUri, code: req.body.code, code_verifier: transaction.verifier
+        }),
+        signal: AbortSignal.timeout(15_000)
+      });
+      const tokens = await tokenResponse.json();
+      if (!tokenResponse.ok || !tokens.id_token) return res.status(401).json({ message: '统一账号授权失败或授权码已过期' });
+
+      let identity;
+      try { identity = await verifyOidcIdToken(tokens.id_token, transaction.nonce); }
+      catch { return res.status(401).json({ message: '统一身份令牌无效或已过期' }); }
+
+      if (transaction.mode === 'link') {
+        await linkOidcSubject(req.user.id, identity.subject);
+        return res.json({ linked: true });
+      }
+
+      const [rows] = await pool.execute(
+        `SELECT u.id, u.username, u.display_name, u.email, u.phone, u.status,
+                u.last_login_at, u.token_version, u.created_at,
+                r.code AS role, r.status AS role_status
+         FROM users u JOIN roles r ON r.id = u.role_id
+         WHERE u.oidc_subject = ? LIMIT 1`,
+        [identity.subject]
+      );
+      const user = rows[0];
+      if (!user) return res.status(403).json({ message: '此统一身份尚未绑定本项目账号，请先使用本地账号登录并绑定' });
+      if (user.status !== 'active' || user.role_status !== 'active') {
+        return res.status(403).json({ message: '本项目账号或角色已停用' });
+      }
+      await pool.execute('UPDATE users SET last_login_at = NOW() WHERE id = ?', [user.id]);
+      await recordLogin({ userId: user.id, username: user.username, role: user.role, success: 1, message: '统一身份登录成功', req });
+      const viewer = await auth.loadActiveUser({ id: user.id, tokenVersion: user.token_version });
+      if (!viewer) return res.status(403).json({ message: '本项目账号状态已变化，请重新登录' });
+      res.json({ token: signToken(user), user: publicUser(user, viewer) });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get('/oidc/status', auth(), async (req, res, next) => {
+  try {
+    const [rows] = await pool.execute('SELECT oidc_subject IS NOT NULL AS linked FROM users WHERE id = ?', [req.user.id]);
+    if (!rows[0]) return res.status(404).json({ message: '用户不存在' });
+    res.json({ linked: rows[0].linked });
+  } catch (error) {
+    next(error);
+  }
+});
 
 function clientIp(req) {
   // 服务通过 FRP 以 TCP 方式暴露，真实客户端 IP 拿不到，此时会是回环地址。

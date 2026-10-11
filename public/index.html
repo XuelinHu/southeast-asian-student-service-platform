@@ -47,7 +47,9 @@
               <input name="password" type="password" autocomplete="current-password" required />
             </label>
             <button class="primary-button" type="submit" data-i18n="loginButton">登录系统</button>
+            <button class="ghost-button" id="oidcLogin" type="button">使用统一账号登录</button>
             <p class="message" id="loginMessage"></p>
+            <p class="message" id="oidcMessage" aria-live="polite"></p>
           </form>
 
           <form id="registerForm" class="form-grid auth-panel hidden">
