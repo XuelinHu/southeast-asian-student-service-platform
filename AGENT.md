@@ -26,6 +26,7 @@
 - Variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `JWT_EXPIRES_IN`.
 - Schema: `database/schema.sql`.
 - Migration ledger: `schema_migrations` stores each migration name and SHA-256 of its implementation. Applied migrations are immutable; add a new migration instead of editing one that has been applied. MySQL DDL is not transactional, so each migration must remain idempotent and ledger insertion happens only after `up()` succeeds.
+- Migration 009 adds indexes for visa status/expiry ordering and grade audit-status filtering; query changes should be reviewed against indexes and verified with `EXPLAIN` on an isolated database.
 - `MIGRATE_DRY_RUN=1` prints the migration plan and exits before opening a database connection; it must not execute SQL.
 - Keep real passwords only in local `.env`.
 - 删除测试数据要按外键顺序：`students`（被 dormitories / grade_records / study_records / visas 引用）

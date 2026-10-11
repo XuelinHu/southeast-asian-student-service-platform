@@ -514,6 +514,13 @@ const migrations = [
           `更新 ${tablesApplied} 张表注释、${applied} 列注释，跳过 ${skipped} 列`
       );
     }
+  },
+  {
+    name: '009 签证与成绩审核查询索引',
+    async up(conn, db) {
+      await addIndex(conn, db, 'visas', 'idx_visas_status_expiry', '`status`, `expiry_date`');
+      await addIndex(conn, db, 'grade_records', 'idx_grade_records_audit_status', '`audit_status`');
+    }
   }
 ];
 

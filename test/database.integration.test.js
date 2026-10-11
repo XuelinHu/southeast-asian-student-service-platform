@@ -136,6 +136,17 @@ test('database-backed auth, RBAC, pagination, and logout revocation', { skip: !e
 
     const reLogin = await login('admin');
     assert.equal(reLogin.response.status, 200);
+
+    const [visaIndexPlans] = await pool.query(`
+      EXPLAIN SELECT id FROM visas WHERE status = 'valid'
+      ORDER BY expiry_date ASC LIMIT 20
+    `);
+    assert.equal(visaIndexPlans[0].key, 'idx_visas_status_expiry');
+
+    const [gradeIndexPlans] = await pool.query(`
+      EXPLAIN SELECT id FROM grade_records WHERE audit_status = 'pending'
+    `);
+    assert.equal(gradeIndexPlans[0].key, 'idx_grade_records_audit_status');
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     await pool.end();
