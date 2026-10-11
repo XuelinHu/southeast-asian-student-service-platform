@@ -72,9 +72,19 @@ function writeHash() {
 async function loadOptions(resourceKey, field) {
   const cacheKey = `${resourceKey}:${field}`;
   if (optionCache.has(cacheKey)) return optionCache.get(cacheKey);
-  const promise = api(`/api/admin/${resourceKey}/options?field=${encodeURIComponent(field)}`)
-    .then((body) => body.items || [])
-    .catch(() => []);
+  const promise = (async () => {
+    const items = [];
+    let page = 1;
+    let totalPages = 0;
+    do {
+      const query = new URLSearchParams({ field, page: String(page), pageSize: '100' });
+      const body = await api(`/api/admin/${resourceKey}/options?${query}`);
+      items.push(...(body.items || []));
+      totalPages = Number(body.totalPages) || 0;
+      page += 1;
+    } while (page <= totalPages);
+    return items;
+  })().catch(() => []);
   optionCache.set(cacheKey, promise);
   return promise;
 }

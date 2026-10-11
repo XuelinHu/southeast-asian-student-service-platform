@@ -73,8 +73,8 @@
 `src/services/pagination.js` 一份实现。`pageSize` 被钳在 1..100，非法的 `sortBy`
 按白名单静默回落，越界页返回空数组而不是报错。
 
-两处**有意不做分页**的接口：`GET /api/management/nationalities` 与
-`GET /api/admin/:resource/options` —— 它们是下拉框的数据源，分页了反而不能用。
+管理台 `/api/admin/:resource/options` 与 `/api/management/nationalities` 也使用相同分页信封。
+编辑表单会按页读取下拉选项，避免单个请求返回不受控的全量结果。
 
 ## 页面
 

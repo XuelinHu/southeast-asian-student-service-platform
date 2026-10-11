@@ -12,7 +12,7 @@ const {
 } = require('../config/resources');
 const { canAccess, getGrantedMenu, teacherTypeAllowed, TEACHER_TYPES } = require('../config/roles');
 const { studentScope, classScope } = require('../services/scope');
-const { parseListQuery, runPaginatedQuery } = require('../services/pagination');
+const { parseListQuery, parsePageQuery, buildPageEnvelope, runPaginatedQuery } = require('../services/pagination');
 const riskQuery = require('../services/riskQuery');
 
 const router = express.Router();
@@ -240,11 +240,16 @@ router.get('/:resource/options', async (req, res, next) => {
     // labelColumn 可能是 CONCAT(...) 表达式，所以排序单列一个 orderBy 字段兜底。
     const where = option.where ? `WHERE ${option.where}` : '';
     const orderBy = option.orderBy || option.labelColumn;
+    const page = parsePageQuery(req.query);
+    const [[countRow]] = await pool.query(
+      `SELECT COUNT(DISTINCT ${option.valueColumn}) AS total ${option.from} ${where}`
+    );
     const [rows] = await pool.query(
       `SELECT ${option.valueColumn} AS value, ${option.labelColumn} AS label
-       ${option.from} ${where} ORDER BY ${orderBy} LIMIT 500`
+       ${option.from} ${where} ORDER BY ${orderBy}, ${option.valueColumn}
+       LIMIT ${Number(page.pageSize)} OFFSET ${Number(page.offset)}`
     );
-    res.json({ items: rows });
+    res.json(buildPageEnvelope(rows, { ...page, total: countRow?.total || 0 }));
   } catch (error) {
     next(error);
   }

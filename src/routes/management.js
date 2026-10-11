@@ -2,7 +2,7 @@ const express = require('express');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 const { requireMenu } = require('../middleware/auth');
-const { parseListQuery, runPaginatedQuery } = require('../services/pagination');
+const { parseListQuery, parsePageQuery, buildPageEnvelope, runPaginatedQuery } = require('../services/pagination');
 const { studentScope } = require('../services/scope');
 const riskQuery = require('../services/riskQuery');
 
@@ -70,15 +70,19 @@ router.get('/dashboard', auth(), requireMenu('students'), async (req, res, next)
   }
 });
 
-// 国籍是下拉数据源（选国籍、筛国籍都从这里取），**有意不分页**：
-// 分页之后第 2 页起的国家在表单里就选不到了。全量字典表，行数天然有限。
-// 管理台的 /api/admin/nationalities 是分页的完整管理界面，两者用途不同。
+// 国籍目录也使用分页信封；调用方需要完整选项时应逐页读取。
 router.get('/nationalities', auth(), async (req, res, next) => {
   try {
-    const [rows] = await pool.execute(
-      'SELECT * FROM nationalities WHERE status = \'active\' ORDER BY sort_order, name_en'
+    const page = parsePageQuery(req.query);
+    const [[countRow]] = await pool.query(
+      "SELECT COUNT(*) AS total FROM nationalities WHERE status = 'active'"
     );
-    res.json(rows);
+    const [rows] = await pool.query(
+      `SELECT * FROM nationalities WHERE status = 'active'
+       ORDER BY sort_order, name_en, id
+       LIMIT ${Number(page.pageSize)} OFFSET ${Number(page.offset)}`
+    );
+    res.json(buildPageEnvelope(rows, { ...page, total: countRow?.total || 0 }));
   } catch (error) {
     next(error);
   }

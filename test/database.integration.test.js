@@ -62,6 +62,66 @@ test('database-backed auth, RBAC, pagination, and logout revocation', { skip: !e
     assert.equal(second.items.length, 10);
     assert.notEqual(first.items[0].id, second.items[0].id);
 
+    const optionsFirstResponse = await fetch(
+      `${base}/api/admin/users/options?field=roleId&page=1&pageSize=2`,
+      { headers: adminAuth }
+    );
+    const optionsFirst = await optionsFirstResponse.json();
+    assert.equal(optionsFirstResponse.status, 200);
+    assert.equal(optionsFirst.items.length, 2);
+    assert.equal(optionsFirst.page, 1);
+    assert.equal(optionsFirst.pageSize, 2);
+    assert.ok(optionsFirst.total >= 3);
+    assert.equal(optionsFirst.totalPages, Math.ceil(optionsFirst.total / 2));
+
+    const optionsSecondResponse = await fetch(
+      `${base}/api/admin/users/options?field=roleId&page=2&pageSize=2`,
+      { headers: adminAuth }
+    );
+    const optionsSecond = await optionsSecondResponse.json();
+    assert.equal(optionsSecondResponse.status, 200);
+    assert.equal(optionsSecond.items.length, 2);
+    assert.equal(optionsSecond.page, 2);
+    assert.ok(optionsFirst.items.every((item) => !optionsSecond.items.some((other) => item.value === other.value)));
+
+    const classOptionsFirstResponse = await fetch(
+      `${base}/api/admin/students/options?field=classId&page=1&pageSize=100`,
+      { headers: adminAuth }
+    );
+    const classOptionsFirst = await classOptionsFirstResponse.json();
+    assert.equal(classOptionsFirstResponse.status, 200);
+    assert.equal(classOptionsFirst.items.length, 100);
+    assert.ok(classOptionsFirst.total >= 120);
+    assert.equal(classOptionsFirst.totalPages, Math.ceil(classOptionsFirst.total / 100));
+
+    const classOptionsSecondResponse = await fetch(
+      `${base}/api/admin/students/options?field=classId&page=2&pageSize=100`,
+      { headers: adminAuth }
+    );
+    const classOptionsSecond = await classOptionsSecondResponse.json();
+    assert.equal(classOptionsSecondResponse.status, 200);
+    assert.ok(classOptionsSecond.items.length > 0 && classOptionsSecond.items.length <= 100);
+    assert.ok(classOptionsFirst.items.every((item) => !classOptionsSecond.items.some((other) => item.value === other.value)));
+
+    const nationalitiesFirstResponse = await fetch(
+      `${base}/api/management/nationalities?page=1&pageSize=20`,
+      { headers: adminAuth }
+    );
+    const nationalitiesFirst = await nationalitiesFirstResponse.json();
+    assert.equal(nationalitiesFirstResponse.status, 200);
+    assert.equal(nationalitiesFirst.items.length, 20);
+    assert.equal(nationalitiesFirst.page, 1);
+    assert.ok(nationalitiesFirst.total >= 120);
+
+    const nationalitiesSecondResponse = await fetch(
+      `${base}/api/management/nationalities?page=2&pageSize=20`,
+      { headers: adminAuth }
+    );
+    const nationalitiesSecond = await nationalitiesSecondResponse.json();
+    assert.equal(nationalitiesSecondResponse.status, 200);
+    assert.equal(nationalitiesSecond.items.length, 20);
+    assert.ok(nationalitiesFirst.items.every((item) => !nationalitiesSecond.items.some((other) => item.id === other.id)));
+
     const studentLogin = await login('student01');
     assert.equal(studentLogin.response.status, 200);
     const forbidden = await fetch(`${base}/api/admin/users?page=1`, {
