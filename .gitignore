@@ -7,6 +7,7 @@ build
 .env.*
 !.env.example
 coverage
+backups/
 # 软著材料的内部索引、原始证据与中间产物，不随材料交付
 .tmp/
 
