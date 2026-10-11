@@ -53,7 +53,7 @@ const TOOLS = [
       const [[teachers]] = await pool.query('SELECT COUNT(*) AS count FROM teachers');
       const [[classes]] = await pool.query('SELECT COUNT(*) AS count FROM classes');
       const [[visaWarnings]] = await pool.query(
-        'SELECT COUNT(*) AS count FROM visas WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)'
+        'SELECT COUNT(*) AS count FROM visas WHERE expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 60'
       );
       const [[gradeExceptions]] = await pool.query(
         "SELECT COUNT(*) AS count FROM grade_records WHERE adapt_status = 'exception'"
@@ -166,7 +166,7 @@ const TOOLS = [
 
       const [[visa]] = await pool.query(
         `SELECT visa_type, visa_no, issue_date, expiry_date, status,
-                DATEDIFF(expiry_date, CURDATE()) AS days_to_expiry
+                (expiry_date - CURRENT_DATE) AS days_to_expiry
          FROM visas WHERE student_id = ? ORDER BY expiry_date DESC LIMIT 1`,
         [student.id]
       );
@@ -240,7 +240,7 @@ const TOOLS = [
       if (!student) return { found: false, message: '没有找到你的档案。' };
 
       const [[visa]] = await pool.query(
-        `SELECT visa_type, expiry_date, status, DATEDIFF(expiry_date, CURDATE()) AS days_to_expiry
+        `SELECT visa_type, expiry_date, status, (expiry_date - CURRENT_DATE) AS days_to_expiry
          FROM visas WHERE student_id = ? ORDER BY expiry_date DESC LIMIT 1`,
         [ctx.studentId]
       );
@@ -308,11 +308,11 @@ const TOOLS = [
       const [rows] = await pool.query(
         `SELECT s.student_no, s.chinese_name, s.english_name, c.name AS class_name,
                 v.visa_type, v.expiry_date, v.status,
-                DATEDIFF(v.expiry_date, CURDATE()) AS days_to_expiry
+                (v.expiry_date - CURRENT_DATE) AS days_to_expiry
          FROM visas v
          JOIN students s ON s.id = v.student_id
          LEFT JOIN classes c ON c.id = s.class_id
-         WHERE v.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+         WHERE v.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + ?::int
          ORDER BY v.expiry_date ASC LIMIT ${limit}`,
         [days]
       );
@@ -432,7 +432,7 @@ const TOOLS = [
     menus: ['dormitories'],
     async run(args) {
       const limit = toPositiveInt(args.limit, 20, 1, 50);
-      const where = "(d.status IN ('maintenance', 'reserved') OR d.check_out_date < CURDATE())";
+      const where = "(d.status IN ('maintenance', 'reserved') OR d.check_out_date < CURRENT_DATE)";
       const [rows] = await pool.query(
         `SELECT s.student_no, s.chinese_name, s.english_name, c.name AS class_name,
                 d.building, d.room_no, d.bed_no, d.check_in_date, d.check_out_date, d.status
@@ -456,7 +456,7 @@ const TOOLS = [
     async run() {
       const [[visa]] = await pool.query(
         `SELECT COUNT(*) AS count FROM visas
-         WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)`
+         WHERE expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 60`
       );
       const [[grade]] = await pool.query(
         "SELECT COUNT(*) AS count FROM grade_records WHERE adapt_status = 'exception'"
@@ -468,7 +468,7 @@ const TOOLS = [
         "SELECT COUNT(*) AS count FROM study_records WHERE warning_level IN ('warning', 'serious') OR attendance_rate < 70"
       );
       const [[dormitory]] = await pool.query(
-        "SELECT COUNT(*) AS count FROM dormitories WHERE status IN ('maintenance', 'reserved') OR check_out_date < CURDATE()"
+        "SELECT COUNT(*) AS count FROM dormitories WHERE status IN ('maintenance', 'reserved') OR check_out_date < CURRENT_DATE"
       );
 
       const summary = {

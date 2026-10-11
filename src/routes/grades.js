@@ -136,8 +136,7 @@ router.post('/adapt', auth(), requireMenu('gradeRecords', 'create'), async (req,
  */
 router.get('/student/:studentId', auth(), async (req, res, next) => {
   try {
-    // 非数字的 studentId 直接 400：不拦的话会原样进 SQL 变成 'abc'，MySQL 报语法错，
-    // 冒出来的是 500 而不是"参数不合法"，排查时容易被带偏。
+    // 非数字的 studentId 直接 400，避免数据库类型转换错误变成 500。
     const studentId = Number.parseInt(req.params.studentId, 10);
     if (!Number.isFinite(studentId)) {
       return res.status(400).json({ message: '学生 ID 不合法' });

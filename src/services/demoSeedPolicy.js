@@ -6,7 +6,7 @@ function getDemoSeedOptions(env = process.env, args = process.argv.slice(2)) {
     throw new Error('Set ALLOW_DEMO_SEED=1 to explicitly enable demo data seeding.');
   }
 
-  const database = String(env.DB_NAME || 'international_student_platform');
+  const database = String(env.PGDATABASE || 'international_student_platform');
   if (!/(?:_dev|_test|_demo)$/i.test(database) || env.DEMO_SEED_DATABASE !== database) {
     throw new Error('Demo seed requires a database ending in _dev, _test, or _demo and an exact DEMO_SEED_DATABASE match.');
   }
@@ -27,9 +27,9 @@ function getDemoSeedOptions(env = process.env, args = process.argv.slice(2)) {
 
 function demoUserDuplicateUpdate(resetDemoPasswords) {
   if (!resetDemoPasswords) {
-    return 'id = id, username = username, password_hash = password_hash, role_id = role_id, display_name = display_name, status = status';
+    return 'username = EXCLUDED.username, password_hash = users.password_hash, role_id = users.role_id, display_name = users.display_name, status = users.status';
   }
-  return 'password_hash = IF(id = VALUES(id), VALUES(password_hash), password_hash), role_id = role_id, display_name = display_name, status = status';
+  return 'password_hash = EXCLUDED.password_hash, role_id = EXCLUDED.role_id, display_name = EXCLUDED.display_name, status = EXCLUDED.status';
 }
 
 module.exports = { getDemoSeedOptions, demoUserDuplicateUpdate };

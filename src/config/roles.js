@@ -1,11 +1,10 @@
 // 角色与菜单授权（声明式）。
 //
 // 本文件是"角色 → 菜单"的权威定义，只在两处被消费：
-//   1. database/schema.sql —— 全新初始化时灌入 roles / role_menus 两张表
+//   1. database/postgres/seed.sql —— 全新初始化时灌入角色基线
 //   2. src/migrate.js      —— 对已有库做幂等播种
 // 运行时的权限判据是数据库里的 role_menus 行，不是本文件：管理台改过某个角色的
-// 菜单勾选之后，migrate 重跑不会把权限位改回去（播种走 INSERT ... ON DUPLICATE KEY
-// UPDATE，只更新角色名称与排序，不覆盖 can_* 四个权限位）。
+// 菜单勾选之后，migrate 重跑不会把权限位改回去；菜单授权行使用 ON CONFLICT DO NOTHING。
 //
 // 权限位用紧凑串表示：v=查看 c=新增 u=修改 d=删除。写成 'vcu' 而不是四个布尔字段，
 // 是为了让几个角色的差异在本文件里一眼可比。

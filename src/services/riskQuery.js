@@ -15,21 +15,21 @@ const RISK_BRANCHES = {
     label: '签证临期',
     sql: `SELECT 'visa_expiring' AS risk_type, s.student_no, s.chinese_name, s.english_name,
                  v.expiry_date AS risk_date,
-                 CONCAT('签证将于 ', DATE_FORMAT(v.expiry_date, '%Y-%m-%d'), ' 到期（剩余 ',
-                        DATEDIFF(v.expiry_date, CURDATE()), ' 天）') AS detail,
+                 CONCAT('签证将于 ', TO_CHAR(v.expiry_date, 'YYYY-MM-DD'), ' 到期（剩余 ',
+                        (v.expiry_date - CURRENT_DATE), ' 天）') AS detail,
                  NULL AS severity
           FROM visas v JOIN students s ON s.id = v.student_id
-          WHERE v.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)
+          WHERE v.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 60
           LIMIT ${BRANCH_LIMIT}`
   },
   visa_expired: {
     label: '签证过期',
     sql: `SELECT 'visa_expired' AS risk_type, s.student_no, s.chinese_name, s.english_name,
                  v.expiry_date AS risk_date,
-                 CONCAT('签证已于 ', DATE_FORMAT(v.expiry_date, '%Y-%m-%d'), ' 过期') AS detail,
+                 CONCAT('签证已于 ', TO_CHAR(v.expiry_date, 'YYYY-MM-DD'), ' 过期') AS detail,
                  NULL AS severity
           FROM visas v JOIN students s ON s.id = v.student_id
-          WHERE v.expiry_date < CURDATE()
+          WHERE v.expiry_date < CURRENT_DATE
           LIMIT ${BRANCH_LIMIT}`
   },
   grade_exception: {
@@ -71,7 +71,7 @@ const RISK_BRANCHES = {
                  CONCAT(d.building, '-', d.room_no, '-', d.bed_no, '：', d.status) AS detail,
                  NULL AS severity
           FROM dormitories d JOIN students s ON s.id = d.student_id
-          WHERE d.status IN ('maintenance','reserved') OR d.check_out_date < CURDATE()
+          WHERE d.status IN ('maintenance','reserved') OR d.check_out_date < CURRENT_DATE
           LIMIT ${BRANCH_LIMIT}`
   }
 };

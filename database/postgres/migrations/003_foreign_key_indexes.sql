@@ -1,0 +1,10 @@
+CREATE INDEX IF NOT EXISTS idx_classes_teacher ON classes (teacher_id);
+CREATE INDEX IF NOT EXISTS idx_dormitories_student ON dormitories (student_id);
+CREATE INDEX IF NOT EXISTS idx_visas_student ON visas (student_id);
+CREATE INDEX IF NOT EXISTS idx_study_records_student ON study_records (student_id);
+CREATE INDEX IF NOT EXISTS idx_study_records_teacher ON study_records (teacher_id);
+CREATE INDEX IF NOT EXISTS idx_grade_rules_school ON grade_rules (school_id);
+CREATE INDEX IF NOT EXISTS idx_grade_records_student ON grade_records (student_id);
+CREATE INDEX IF NOT EXISTS idx_grade_records_source_school ON grade_records (source_school_id);
+CREATE INDEX IF NOT EXISTS idx_grade_records_auditor ON grade_records (audited_by);
+CREATE INDEX IF NOT EXISTS idx_login_logs_user ON login_logs (user_id);

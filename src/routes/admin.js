@@ -90,7 +90,7 @@ function mapBodyToColumns(resource, body, { partial }) {
 
     // 新增时没传（或传了空值）的可选字段不进 INSERT 列表，交给列自己的默认值。
     // 早先的写法是显式写 NULL，那样在 `sort_order INT NOT NULL DEFAULT 0` 这类列上
-    // 会直接撞 ER_BAD_NULL_ERROR（1048），而它不在下面的错误映射里，前端只会看到 500。
+    // 会触发 NOT NULL 约束错误；可选字段缺省时应交给数据库默认值。
     // 修改（partial）不做这个处理：那里传空值就是"清空该字段"，显式写 NULL 才是本意。
     const raw = body[name];
     if (!partial && !field.required && (raw === undefined || raw === null || raw === '')) continue;
@@ -133,47 +133,46 @@ router.get('/resources', (req, res) => {
 // 审计员只有日志菜单，看不到这里。
 router.get('/stats/overview', requireMenu('students'), async (req, res, next) => {
   try {
-    // delayed 是 MySQL 保留字（INSERT DELAYED 的遗留），当别名不加反引号会直接语法报错
     const [[students]] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(status = 'active') AS active,
-              SUM(status = 'suspended') AS suspended,
-              SUM(status = 'delayed') AS \`delayed\`
+              SUM((status = 'active')::int) AS active,
+              SUM((status = 'suspended')::int) AS suspended,
+              SUM((status = 'delayed')::int) AS delayed
        FROM students`
     );
     const [[teachers]] = await pool.query('SELECT COUNT(*) AS total FROM teachers');
     const [[classes]] = await pool.query('SELECT COUNT(*) AS total FROM classes');
     const [[nationalities]] = await pool.query('SELECT COUNT(*) AS total FROM nationalities');
     const [[users]] = await pool.query(
-      `SELECT COUNT(*) AS total, SUM(status = 'active') AS active FROM users`
+      `SELECT COUNT(*) AS total, SUM((status = 'active')::int) AS active FROM users`
     );
     const [[visas]] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)) AS expiring,
-              SUM(expiry_date < CURDATE()) AS expired
+              SUM((expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 60)::int) AS expiring,
+              SUM((expiry_date < CURRENT_DATE)::int) AS expired
        FROM visas`
     );
     const [[grades]] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(adapt_status = 'exception') AS exceptions,
-              SUM(audit_status = 'pending') AS pending_audit,
-              SUM(adapted_score IS NOT NULL AND adapted_score < 60) AS low_scores
+              SUM((adapt_status = 'exception')::int) AS exceptions,
+              SUM((audit_status = 'pending')::int) AS pending_audit,
+              SUM((adapted_score IS NOT NULL AND adapted_score < 60)::int) AS low_scores
        FROM grade_records`
     );
     const [[dormitories]] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(status = 'occupied') AS occupied,
-              SUM(status = 'maintenance') AS maintenance
+              SUM((status = 'occupied')::int) AS occupied,
+              SUM((status = 'maintenance')::int) AS maintenance
        FROM dormitories`
     );
     const [[study]] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(warning_level IN ('warning','serious')) AS warnings,
-              SUM(attendance_rate < 70) AS low_attendance
+              SUM((warning_level IN ('warning','serious'))::int) AS warnings,
+              SUM((attendance_rate < 70)::int) AS low_attendance
        FROM study_records`
     );
     const [[agent]] = await pool.query(
-      `SELECT COUNT(*) AS total, SUM(status = 'error') AS errors FROM agent_messages`
+      `SELECT COUNT(*) AS total, SUM((status = 'error')::int) AS errors FROM agent_messages`
     );
 
     res.json({
@@ -581,10 +580,10 @@ router.post('/:resource', async (req, res, next) => {
     );
     res.status(201).json(rows[0] || { id: result.insertId });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (['23505', 'ER_DUP_ENTRY'].includes(error.code)) {
       return res.status(409).json({ message: '存在重复的唯一字段值（如编号已存在）' });
     }
-    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+    if (['23503', 'ER_NO_REFERENCED_ROW_2'].includes(error.code)) {
       return res.status(400).json({ message: '关联的记录不存在' });
     }
     next(error);
@@ -609,11 +608,8 @@ router.put('/:resource/:id', async (req, res, next) => {
       `UPDATE \`${resource.table}\` SET ${setSql} WHERE \`${resource.primaryKey}\` = ?`,
       [...mapped.values, id]
     );
-    // mysql2 默认打开 CLIENT_FOUND_ROWS：affectedRows 是"命中"的行数，
-    // 提交与库中完全相同的值时它仍是 1。要判断"有没有真的改到东西"得看 changedRows，
-    // 否则这条 404 只在记录不存在时才会出现，文案里的"没有变化"形同虚设。
-    if (!result.affectedRows || !result.changedRows) {
-      return res.status(404).json({ message: '记录不存在或没有变化' });
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: '记录不存在' });
     }
 
     const [rows] = await pool.query(
@@ -622,10 +618,10 @@ router.put('/:resource/:id', async (req, res, next) => {
     );
     res.json(rows[0] || { id });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (['23505', 'ER_DUP_ENTRY'].includes(error.code)) {
       return res.status(409).json({ message: '存在重复的唯一字段值（如编号已存在）' });
     }
-    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+    if (['23503', 'ER_NO_REFERENCED_ROW_2'].includes(error.code)) {
       return res.status(400).json({ message: '关联的记录不存在' });
     }
     next(error);
@@ -650,7 +646,7 @@ router.delete('/:resource/:id', async (req, res, next) => {
     res.json({ id, deleted: true });
   } catch (error) {
     // 外键约束：被其他表引用时不能删
-    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+    if (['23503', 'ER_ROW_IS_REFERENCED_2'].includes(error.code)) {
       return res.status(409).json({ message: '该记录被其他数据引用，无法删除' });
     }
     next(error);

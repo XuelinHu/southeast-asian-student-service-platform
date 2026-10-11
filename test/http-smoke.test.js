@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-process.env.DB_PASSWORD ||= 'http-smoke-test-only';
+process.env.PGPASSWORD ||= 'http-smoke-test-only';
 process.env.JWT_SECRET ||= 'http-smoke-jwt-secret-for-tests';
 
 const app = require('../src/server');
@@ -48,7 +48,7 @@ test('anonymous visitor receives a random HttpOnly SameSite cookie', async () =>
   assert.match(cookie, /SameSite=Lax/i);
 })
 
-test('protected student data is rejected before reaching MySQL', async () => {
+test('protected student data is rejected before reaching the database', async () => {
   const response = await fetch(`${baseUrl}/api/students`);
   const body = await response.json();
 

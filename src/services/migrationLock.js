@@ -1,19 +1,17 @@
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 function migrationLockName(database) {
-  const digest = crypto.createHash('sha256').update(database).digest('hex').slice(0, 24);
-  return `student-platform-migrate:${digest}`;
+  const digest = crypto.createHash('sha256').update(String(database)).digest('hex').slice(0, 32);
+  return `student-platform:migrate:${digest}`;
 }
 
 async function withMigrationLock(connection, database, migrate) {
   const lockName = migrationLockName(database);
-  const [[lock]] = await connection.query('SELECT GET_LOCK(?, 15) AS acquired', [lockName]);
-  if (Number(lock.acquired) !== 1) throw new Error('Could not acquire the database migration lock.');
-
+  await connection.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [lockName]);
   try {
     return await migrate();
   } finally {
-    await connection.query('SELECT RELEASE_LOCK(?)', [lockName]);
+    await connection.query('SELECT pg_advisory_unlock(hashtextextended($1, 0))', [lockName]);
   }
 }
 

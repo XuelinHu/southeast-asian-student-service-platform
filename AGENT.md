@@ -3,7 +3,7 @@
 ## Project
 
 - Project: `southeast-asian-student-service-platform`
-- Stack: Node.js + Express, MySQL, JWT, Helmet, 本机 Ollama
+- Stack: Node.js + Express, PostgreSQL 18, JWT, Helmet, 本机 Ollama
 - Type: international student information management service
 - Frontend: 无构建步骤的原生 ES Module（`public/js/`），不使用打包器
 
@@ -20,12 +20,13 @@
 
 ## Database
 
-- Type: MySQL.
+- Type: PostgreSQL 18.
 - Database name: `international_student_platform`.
 - Env file: `.env` based on `.env.example`.
-- Variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `JWT_EXPIRES_IN`.
-- Schema: `database/schema.sql`.
-- Migration ledger: `schema_migrations` stores each migration name and SHA-256 of its implementation. Applied migrations are immutable; add a new migration instead of editing one that has been applied. MySQL DDL is not transactional, so each migration must remain idempotent and ledger insertion happens only after `up()` succeeds.
+- Variables: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `JWT_SECRET`, `JWT_EXPIRES_IN`.
+- Active schema and seed: `database/postgres/schema.sql` and `database/postgres/seed.sql`. The historical MySQL `database/schema.sql` is retained only as a migration reference.
+- Each project uses a dedicated PostgreSQL database and login role. The application role must not be a cluster administrator or have `CREATEDB`/`CREATEROLE`.
+- Migration ledger: `schema_migrations` stores the baseline name and SHA-256. Applied baseline inputs are immutable; add a new PostgreSQL migration instead of editing an applied migration. Migrations use a transaction and PostgreSQL advisory lock.
 - Migration 009 adds indexes for visa status/expiry ordering and grade audit-status filtering; query changes should be reviewed against indexes and verified with `EXPLAIN` on an isolated database.
 - `MIGRATE_DRY_RUN=1` prints the migration plan and exits before opening a database connection; it must not execute SQL.
 - Keep real passwords only in local `.env`.
@@ -46,7 +47,7 @@
 - Maintain relationships among users, students, teachers, classes, grades, visas, dormitories, and nationalities.
 - 前端改动同步改 `README.md` 的页面说明；新增业务表时在 `src/config/resources.js` 加注册项，
   管理台菜单与分页接口会自动生成，不要另写一套 CRUD 路由。
-- 新增 SQL 时注意：MySQL 保留字不能直接当列别名（`AS delayed` 会语法报错），需要反引号。
+- 新增 SQL 时使用 PostgreSQL 双引号引用保留字；优先选择不需要引用的别名。
 - If schema or seed logic changes, update README and this file.
 
 ## GitHub Commit Language

@@ -4,6 +4,7 @@ const seedOptions = getDemoSeedOptions();
 const bcrypt = require('bcryptjs');
 const pool = require('./config/db');
 const { adaptGrade } = require('./services/gradeAdapter');
+let activeConnection = pool;
 
 const passwordHash = bcrypt.hashSync(seedOptions.password, 10);
 const userDuplicateUpdate = demoUserDuplicateUpdate(seedOptions.resetDemoPasswords);
@@ -25,13 +26,13 @@ function datePlus(days) {
 }
 
 async function execute(sql, params = {}) {
-  await pool.execute(sql, params);
+  await activeConnection.execute(sql, params);
 }
 
 // 角色 id 从 roles 表按 code 反查，不在种子数据里写死数字：
 // 角色表的 id 由迁移播种顺序决定，写死会在角色增删后静默指错角色。
 async function roleId(code) {
-  const [rows] = await pool.execute('SELECT id FROM roles WHERE code = :code LIMIT 1', { code });
+  const [rows] = await activeConnection.execute('SELECT id FROM roles WHERE code = :code LIMIT 1', { code });
   if (!rows.length) {
     throw new Error(`roles 表里没有 ${code}，请先执行 npm run db:migrate 播种内置角色`);
   }
@@ -65,7 +66,7 @@ async function insertDemoUser(id, username, roleId, displayName) {
   await execute(
     `INSERT INTO users (id, username, password_hash, role_id, display_name, status)
      VALUES (:id, :username, :passwordHash, :roleId, :displayName, 'active')
-     ON DUPLICATE KEY UPDATE ${userDuplicateUpdate}`,
+     ON CONFLICT (id) DO UPDATE SET ${userDuplicateUpdate}`,
     { id, username, passwordHash, roleId, displayName }
   );
 }
@@ -77,7 +78,7 @@ async function seedNationalities() {
       `INSERT INTO nationalities
          (id, country_code, name_zh, name_en, continent, primary_language, timezone, status, sort_order)
        VALUES (:id, :countryCode, :nameZh, :nameEn, 'Asia-Pacific', :language, :timezone, 'active', :sortOrder)
-       ON DUPLICATE KEY UPDATE name_zh = VALUES(name_zh), name_en = VALUES(name_en), primary_language = VALUES(primary_language), timezone = VALUES(timezone)`,
+       ON CONFLICT (id) DO UPDATE SET name_zh = EXCLUDED.name_zh, name_en = EXCLUDED.name_en, primary_language = EXCLUDED.primary_language, timezone = EXCLUDED.timezone`,
       {
         id: i,
         sortOrder: i,
@@ -96,7 +97,7 @@ async function seedTeachers() {
     await execute(
       `INSERT INTO teachers (id, user_id, teacher_no, name, college, phone, email, teacher_type)
        VALUES (:id, :userId, :teacherNo, :name, :college, :phone, :email, :teacherType)
-       ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), name = VALUES(name), college = VALUES(college), phone = VALUES(phone), email = VALUES(email), teacher_type = VALUES(teacher_type)`,
+       ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id, name = EXCLUDED.name, college = EXCLUDED.college, phone = EXCLUDED.phone, email = EXCLUDED.email, teacher_type = EXCLUDED.teacher_type`,
       {
         id: i,
         userId: 1000 + i,
@@ -116,7 +117,7 @@ async function seedClasses() {
     await execute(
       `INSERT INTO classes (id, code, name, college, major, teacher_id, enrollment_year)
        VALUES (:id, :code, :name, :college, :major, :teacherId, :year)
-       ON DUPLICATE KEY UPDATE name = VALUES(name), college = VALUES(college), major = VALUES(major), teacher_id = VALUES(teacher_id), enrollment_year = VALUES(enrollment_year)`,
+       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, college = EXCLUDED.college, major = EXCLUDED.major, teacher_id = EXCLUDED.teacher_id, enrollment_year = EXCLUDED.enrollment_year`,
       {
         id: i,
         code: `ISE-2026-${pad(i)}`,
@@ -138,8 +139,8 @@ async function seedStudents() {
         passport_no, passport_expiry, phone, email, emergency_contact, enrollment_year, major, college, class_id, status)
        VALUES (:id, :userId, :studentNo, :chineseName, :englishName, :gender, :birthDate, :nationalityId,
         :passportNo, :passportExpiry, :phone, :email, :emergencyContact, :enrollmentYear, :major, :college, :classId, :status)
-       ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), chinese_name = VALUES(chinese_name), english_name = VALUES(english_name),
-        nationality_id = VALUES(nationality_id), class_id = VALUES(class_id), status = VALUES(status)`,
+       ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id, chinese_name = EXCLUDED.chinese_name, english_name = EXCLUDED.english_name,
+        nationality_id = EXCLUDED.nationality_id, class_id = EXCLUDED.class_id, status = EXCLUDED.status`,
       {
         id: i,
         userId: 2000 + i,
@@ -169,7 +170,7 @@ async function seedDormitories() {
     await execute(
       `INSERT INTO dormitories (id, building, room_no, bed_no, student_id, check_in_date, check_out_date, status)
        VALUES (:id, :building, :roomNo, :bedNo, :studentId, :checkIn, :checkOut, :status)
-       ON DUPLICATE KEY UPDATE student_id = VALUES(student_id), check_out_date = VALUES(check_out_date), status = VALUES(status)`,
+       ON CONFLICT (id) DO UPDATE SET student_id = EXCLUDED.student_id, check_out_date = EXCLUDED.check_out_date, status = EXCLUDED.status`,
       {
         id: i,
         building: `International Dorm ${((i - 1) % 8) + 1}`,
@@ -189,7 +190,7 @@ async function seedVisas() {
     await execute(
       `INSERT INTO visas (id, student_id, visa_type, visa_no, issue_date, expiry_date, residence_permit_no, document_url, status)
        VALUES (:id, :studentId, :visaType, :visaNo, :issueDate, :expiryDate, :permitNo, :documentUrl, :status)
-       ON DUPLICATE KEY UPDATE expiry_date = VALUES(expiry_date), status = VALUES(status)`,
+       ON CONFLICT (id) DO UPDATE SET expiry_date = EXCLUDED.expiry_date, status = EXCLUDED.status`,
       {
         id: i,
         studentId: i,
@@ -212,7 +213,7 @@ async function seedStudyRecords() {
       `INSERT INTO study_records
        (id, student_id, course_code, course_name, attendance_rate, homework_status, class_performance, warning_level, teacher_id)
        VALUES (:id, :studentId, :courseCode, :courseName, :attendance, :homeworkStatus, :performance, :warningLevel, :teacherId)
-       ON DUPLICATE KEY UPDATE attendance_rate = VALUES(attendance_rate), warning_level = VALUES(warning_level), teacher_id = VALUES(teacher_id)`,
+       ON CONFLICT (id) DO UPDATE SET attendance_rate = EXCLUDED.attendance_rate, warning_level = EXCLUDED.warning_level, teacher_id = EXCLUDED.teacher_id`,
       {
         id: i,
         studentId: ((i - 1) % 180) + 1,
@@ -233,7 +234,7 @@ async function seedExternalSchools() {
     await execute(
       `INSERT INTO external_schools (id, country_code, name, contact_name, contact_email, integration_type, endpoint_url, status)
        VALUES (:id, :countryCode, :name, :contactName, :contactEmail, :integrationType, :endpointUrl, 'active')
-       ON DUPLICATE KEY UPDATE country_code = VALUES(country_code), name = VALUES(name), integration_type = VALUES(integration_type), endpoint_url = VALUES(endpoint_url), status = 'active'`,
+       ON CONFLICT (id) DO UPDATE SET country_code = EXCLUDED.country_code, name = EXCLUDED.name, integration_type = EXCLUDED.integration_type, endpoint_url = EXCLUDED.endpoint_url, status = 'active'`,
       {
         id: i,
         countryCode: `${countryCodes[(i - 1) % countryCodes.length]}${pad(Math.ceil(i / countryCodes.length), 2)}`,
@@ -252,7 +253,7 @@ async function seedGradeRules() {
     await execute(
       `INSERT INTO grade_rules (id, school_id, country_code, name, version, gpa_scale, credit_ratio, pass_score, status, effective_from, effective_to)
        VALUES (:id, :schoolId, :countryCode, :name, :version, :gpaScale, :creditRatio, :passScore, 'active', '2026-01-01', '2028-12-31')
-       ON DUPLICATE KEY UPDATE gpa_scale = VALUES(gpa_scale), credit_ratio = VALUES(credit_ratio), pass_score = VALUES(pass_score), status = 'active'`,
+       ON CONFLICT (id) DO UPDATE SET gpa_scale = EXCLUDED.gpa_scale, credit_ratio = EXCLUDED.credit_ratio, pass_score = EXCLUDED.pass_score, status = 'active'`,
       {
         id: i,
         schoolId: i,
@@ -295,7 +296,7 @@ async function seedGradeRecords() {
           original_grade, original_type, original_credit, adapt_status, exception_reason, audit_status)
          VALUES (:id, :studentId, :courseCode, :courseName, :schoolId, :countryCode,
           'N/A', 'letter', :credit, 'exception', 'Source grade cannot be mapped', 'pending')
-         ON DUPLICATE KEY UPDATE adapt_status = 'exception', exception_reason = VALUES(exception_reason), audit_status = 'pending'`,
+         ON CONFLICT (id) DO UPDATE SET adapt_status = 'exception', exception_reason = EXCLUDED.exception_reason, audit_status = 'pending'`,
         {
           id: i,
           studentId,
@@ -322,9 +323,9 @@ async function seedGradeRecords() {
        VALUES (:id, :studentId, :courseCode, :courseName, :schoolId, :countryCode,
         :originalGrade, :originalType, :originalCredit, :adaptedScore, :adaptedGpa, :adaptedCredit,
         :passed, :ruleVersion, 'success', :auditStatus, 1, NOW())
-       ON DUPLICATE KEY UPDATE adapted_score = VALUES(adapted_score), adapted_gpa = VALUES(adapted_gpa),
-        adapted_credit = VALUES(adapted_credit), passed = VALUES(passed), rule_version = VALUES(rule_version),
-        adapt_status = 'success', audit_status = VALUES(audit_status)`,
+       ON CONFLICT (id) DO UPDATE SET adapted_score = EXCLUDED.adapted_score, adapted_gpa = EXCLUDED.adapted_gpa,
+        adapted_credit = EXCLUDED.adapted_credit, passed = EXCLUDED.passed, rule_version = EXCLUDED.rule_version,
+        adapt_status = 'success', audit_status = EXCLUDED.audit_status`,
       {
         id: i,
         studentId,
@@ -350,13 +351,13 @@ async function seedDemoAliases() {
   await execute(
     `INSERT INTO teachers (id, user_id, teacher_no, name, college, phone, email, teacher_type)
      VALUES (121, 2, 'T-DEMO-001', 'Teacher Demo', 'International Education College', '13800009999', 'teacher.demo@example.edu', 'head_teacher')
-     ON DUPLICATE KEY UPDATE user_id = 2, name = VALUES(name), college = VALUES(college), phone = VALUES(phone), email = VALUES(email), teacher_type = VALUES(teacher_type)`
+     ON CONFLICT (id) DO UPDATE SET user_id = 2, name = EXCLUDED.name, college = EXCLUDED.college, phone = EXCLUDED.phone, email = EXCLUDED.email, teacher_type = EXCLUDED.teacher_type`
   );
 
   await execute(
     `INSERT INTO classes (id, code, name, college, major, teacher_id, enrollment_year)
      VALUES (121, 'ISE-DEMO-001', 'Demo International Student Class', 'International Education College', 'Chinese Language', 121, 2026)
-     ON DUPLICATE KEY UPDATE name = VALUES(name), teacher_id = 121, enrollment_year = 2026`
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, teacher_id = 121, enrollment_year = 2026`
   );
 
   await execute(
@@ -366,21 +367,21 @@ async function seedDemoAliases() {
      VALUES (181, 3, 'S-DEMO-001', '学生示例', 'Student Demo', 'Female', '2004-08-01', 1,
       'PDEMO001', :passportExpiry, '13900009999', 'student.demo@example.com', 'Family Demo', 2026,
       'Chinese Language', 'International Education College', 121, 'active')
-     ON DUPLICATE KEY UPDATE user_id = 3, class_id = 121, status = 'active'`,
+     ON CONFLICT (id) DO UPDATE SET user_id = 3, class_id = 121, status = 'active'`,
     { passportExpiry: datePlus(900) }
   );
 
   await execute(
     `INSERT INTO dormitories (id, building, room_no, bed_no, student_id, check_in_date, check_out_date, status)
      VALUES (181, 'International Dorm Demo', 'D101', '1', 181, '2026-09-01', :checkOut, 'occupied')
-     ON DUPLICATE KEY UPDATE student_id = 181, check_out_date = VALUES(check_out_date), status = 'occupied'`,
+     ON CONFLICT (id) DO UPDATE SET student_id = 181, check_out_date = EXCLUDED.check_out_date, status = 'occupied'`,
     { checkOut: datePlus(360) }
   );
 
   await execute(
     `INSERT INTO visas (id, student_id, visa_type, visa_no, issue_date, expiry_date, residence_permit_no, document_url, status)
      VALUES (181, 181, 'X1', 'VISA-DEMO-001', '2026-01-10', :expiryDate, 'RP-DEMO-001', '/uploads/visa/demo.pdf', 'valid')
-     ON DUPLICATE KEY UPDATE student_id = 181, expiry_date = VALUES(expiry_date), status = 'valid'`,
+     ON CONFLICT (id) DO UPDATE SET student_id = 181, expiry_date = EXCLUDED.expiry_date, status = 'valid'`,
     { expiryDate: datePlus(360) }
   );
 
@@ -388,7 +389,7 @@ async function seedDemoAliases() {
     `INSERT INTO study_records
      (id, student_id, course_code, course_name, attendance_rate, homework_status, class_performance, warning_level, teacher_id)
      VALUES (241, 181, 'CN-DEMO', 'Demo Chinese Language', 92.50, 'Completed', 'Normal', 'none', 121)
-     ON DUPLICATE KEY UPDATE student_id = 181, attendance_rate = VALUES(attendance_rate), warning_level = 'none', teacher_id = 121`
+     ON CONFLICT (id) DO UPDATE SET student_id = 181, attendance_rate = EXCLUDED.attendance_rate, warning_level = 'none', teacher_id = 121`
   );
 
   const adapted = adaptGrade(
@@ -403,27 +404,43 @@ async function seedDemoAliases() {
      VALUES (500, 181, 'CN-DEMO', 'Demo Chinese Language', 1, 'TH01',
       'A', 'letter', 3, :adaptedScore, :adaptedGpa, :adaptedCredit,
       1, :ruleVersion, 'success', 'approved', 1, NOW())
-     ON DUPLICATE KEY UPDATE adapted_score = VALUES(adapted_score), adapted_gpa = VALUES(adapted_gpa),
-      adapted_credit = VALUES(adapted_credit), adapt_status = 'success', audit_status = 'approved'`,
+     ON CONFLICT (id) DO UPDATE SET adapted_score = EXCLUDED.adapted_score, adapted_gpa = EXCLUDED.adapted_gpa,
+      adapted_credit = EXCLUDED.adapted_credit, adapt_status = 'success', audit_status = 'approved'`,
     adapted
   );
 }
 
 async function main() {
-  await seedUsers();
-  await seedNationalities();
-  await seedTeachers();
-  await seedClasses();
-  await seedStudents();
-  await seedDormitories();
-  await seedVisas();
-  await seedStudyRecords();
-  await seedExternalSchools();
-  await seedGradeRules();
-  await seedGradeRecords();
-  await seedDemoAliases();
-  await pool.end();
-  console.log(`Demo business data inserted.${seedOptions.resetDemoPasswords ? ' Existing demo passwords were explicitly reset.' : ''}`);
+  const connection = await pool.getConnection();
+  activeConnection = connection;
+  try {
+    await connection.beginTransaction();
+    await seedUsers();
+    await seedNationalities();
+    await seedTeachers();
+    await seedClasses();
+    await seedStudents();
+    await seedDormitories();
+    await seedVisas();
+    await seedStudyRecords();
+    await seedExternalSchools();
+    await seedGradeRules();
+    await seedGradeRecords();
+    await seedDemoAliases();
+    for (const table of ['users', 'nationalities', 'teachers', 'classes', 'students', 'dormitories', 'visas', 'study_records', 'external_schools', 'grade_rules', 'grade_records']) {
+      await connection.query(
+        `SELECT setval(pg_get_serial_sequence('public.${table}', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM ${table}), 1), 1), EXISTS (SELECT 1 FROM ${table}))`
+      );
+    }
+    await connection.commit();
+    console.log(`Demo business data inserted.${seedOptions.resetDemoPasswords ? ' Existing demo passwords were explicitly reset.' : ''}`);
+  } catch (error) {
+    await connection.rollback().catch(() => {});
+    throw error;
+  } finally {
+    connection.release();
+    await pool.end();
+  }
 }
 
 main().catch(async (error) => {

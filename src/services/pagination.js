@@ -3,16 +3,13 @@ const pool = require('../config/db');
 // 分页/SQL 构造。安全约定（重要）：
 //   * 所有 SQL 片段的标识符（列名、排序方向、LIMIT/OFFSET）只能来自本文件的资源注册表，
 //     绝不来自请求参数本身。
-//   * 所有值一律走 ? 占位符，由 mysql2 客户端转义。
-//   * 用 pool.query 而不是 pool.execute：实测 pool.execute 绑定 LIMIT ? 会抛
-//     "Incorrect arguments to mysqld_stmt_execute"，因为 MySQL 预处理语句不接受
-//     LIMIT/OFFSET 作为绑定参数。pool.query 走客户端转义，没有这个限制。
+//   * 所有值一律走兼容层的 ? 占位符；分页数字会先归一化为整数。
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const MAX_KEYWORD_LENGTH = 100;
 
-// LIKE 的转义符。刻意不用反斜杠：反斜杠要同时穿过 JS 字符串字面量和 MySQL 字符串
+// LIKE 的转义符。刻意不用反斜杠：反斜杠要同时穿过 JS 字符串字面量和 SQL 字符串
 // 字面量两层转义，极易写错。用 ! 只需要处理用户输入里的 ! 本身。
 const LIKE_ESCAPE_CHAR = '!';
 
@@ -99,7 +96,7 @@ function parseListQuery(query = {}, resource = {}, scope = null) {
   const defaultSort = resource.defaultSort || `${uniqueColumn} DESC`;
 
   // 排序必须构成全序，否则翻页会重复/漏行：
-  // 像 visas.expiry_date 这种非唯一列，同值的几十行在 MySQL 里没有稳定顺序，
+  // 像 visas.expiry_date 这种非唯一列，同值的几十行没有稳定顺序，
   // LIMIT/OFFSET 两次查询可以把同一行既放进第 1 页又放进第 2 页（实测确实发生）。
   // 所以统一把主键追加为最后一级排序键兜底。
   const orderParts = sortColumn ? [`${sortColumn} ${direction}`] : defaultSort.split(',');

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-process.env.DB_PASSWORD ||= 'pagination-test-only';
+process.env.PGPASSWORD ||= 'pagination-test-only';
 const {
   buildPageEnvelope,
   escapeLike,

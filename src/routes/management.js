@@ -48,7 +48,7 @@ router.get('/dashboard', auth(), requireMenu('students'), async (req, res, next)
     const visaParams = [];
     const [[visaWarnings]] = await pool.query(
       `SELECT COUNT(*) AS count FROM visas v JOIN students s ON s.id = v.student_id
-       WHERE v.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)${scopeAnd(scope, visaParams)}`,
+       WHERE v.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 60${scopeAnd(scope, visaParams)}`,
       visaParams
     );
 

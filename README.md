@@ -2,14 +2,15 @@
 
 <p align="center">
   <img height="20" alt="Express 4.19.2" src="https://img.shields.io/badge/express-4.19.2-000000" />
-  <img height="20" alt="MySQL configured" src="https://img.shields.io/badge/mysql-configured-4479A1" />
+  <img height="20" alt="PostgreSQL 18" src="https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white" />
+  <img height="20" alt="pg driver" src="https://img.shields.io/badge/node--postgres-8.x-336791" />
   <img height="20" alt="Helmet 7.1.0" src="https://img.shields.io/badge/helmet-7.1.0-000000" />
   <img height="20" alt="JWT 9.0.2" src="https://img.shields.io/badge/jsonwebtoken-9.0.2-D63AFF" />
   <img height="20" alt="Ollama local LLM" src="https://img.shields.io/badge/ollama-local%20LLM-000000" />
   <img height="20" alt="License GPL-2.0" src="https://img.shields.io/badge/license-GPL--2.0-3DA639" />
 </p>
 
-前台使用 H5，后台使用 Node.js + Express，数据库使用 MySQL。前端是无构建步骤的原生 ES Module，
+前台使用 H5，后台使用 Node.js + Express，数据库使用 PostgreSQL 18。前端是无构建步骤的原生 ES Module，
 后端统一调用本机 Ollama 上的国内开源模型提供业务智能体。
 
 ## 功能范围
@@ -129,11 +130,18 @@ cp .env.example .env
 npm run db:init
 ```
 
-已有数据库升级时只跑迁移即可，它会查 `information_schema` 判断列/表是否存在，
-不存在才 `ALTER` / `CREATE`。迁移版本、SHA-256 校验和与应用时间记录在
-`schema_migrations`；已记录版本被改写会停止，后续结构变化必须新增迁移。迁移执行由 MySQL
-advisory lock 串行化；失败迁移不会写入台账，重试依赖各迁移的幂等检查。
-迁移 009 为签证状态/到期日组合列表和成绩审核状态筛选补充索引。
+新 PostgreSQL 数据库由部署管理员预先创建独立角色和数据库，应用角色仅拥有本项目数据库权限：
+
+```powershell
+psql -h 127.0.0.1 -p 5432 -U <部署管理员> -d postgres -f database/postgres/provision-role.psql
+```
+
+脚本会交互式读取项目应用角色口令；应用角色没有超级用户、建库或建角色权限。填写 `.env` 的 `PGHOST`、
+`PGPORT`、`PGUSER`、`PGPASSWORD`、`PGDATABASE` 后，运行 `npm run db:init`。
+
+初始化 schema 与种子、角色菜单播种及 checksum ledger 在 PostgreSQL 事务和 advisory lock 中执行。
+`schema_migrations` 保存每版 SHA-256；已记录迁移被改写会失败，后续结构变化新增
+`database/postgres/migrations/*.sql` 文件。迁移 002 为业务查询建立索引；迁移 003 为 PostgreSQL 不会自动索引的外键引用列建立索引。
 
 只查看待执行迁移名称、不连接数据库：
 
@@ -149,8 +157,8 @@ npm run db:migrate
 
 4. 仅在隔离的开发/测试数据库中显式写入演示数据。生产环境禁止运行该命令；
 `db:init` 不会创建演示用户或重置任何口令。演示数据只能写入名称以 `_dev`、`_test`
-或 `_demo` 结尾的隔离数据库。需先在本地 `.env` 将 `DB_NAME` 改为隔离库名；
-`db:init` 会按此名称创建数据库。`DB_NAME` 与 `DEMO_SEED_DATABASE`
+或 `_demo` 结尾的隔离数据库。需先在本地 `.env` 将 `PGDATABASE` 改为隔离库名；
+`PGDATABASE` 与 `DEMO_SEED_DATABASE`
 必须完全相同，并设置 `ALLOW_DEMO_SEED=1` 和随机 `DEMO_SEED_PASSWORD`
 （至少 16 位，包含大小写字母、数字和符号），再运行：
 
@@ -160,14 +168,14 @@ npm run db:seed
 
 重复运行会更新演示业务数据，但不改变已存在用户的口令、角色、显示名或状态。
 
-数据库集成测试仅允许显式设置 `RUN_DB_INTEGRATION=1`，并要求 `DB_NAME` 以 `_dev`、`_test`
+数据库集成测试仅允许显式设置 `RUN_DB_INTEGRATION=1`，并要求 `PGDATABASE` 以 `_dev`、`_test`
 或 `_demo` 结尾、`NODE_ENV` 非 production，以及提供 `DEMO_SEED_PASSWORD`。测试会调用真实 API
 验证认证、角色权限、分页和登出。登出会递增用户的 `token_version`，因此该用户在所有设备上
 已签发的 token 都会立即失效；重新登录会签发新 token。
 
 ```bash
 npm test
-RUN_DB_INTEGRATION=1 DB_NAME=student_dev NODE_ENV=test DEMO_SEED_PASSWORD='<强随机口令>' npm run test:db
+RUN_DB_INTEGRATION=1 PGDATABASE=student_dev NODE_ENV=test DEMO_SEED_PASSWORD='<强随机口令>' npm run test:db
 ```
 只有确认是隔离测试库、且确实要重置 demo 账号密码时，才显式追加 `--reset-demo-passwords`。
 这些 demo 用户名只在 seed 中创建，初始化 schema 不会预置通用口令。
@@ -205,9 +213,7 @@ GET /api/admin/:resource?page=1&pageSize=20&keyword=&sortBy=&sortOrder=desc&<筛
 
 响应统一为 `{ items, page, pageSize, total, totalPages }`。实现上有两个刻意的取舍：
 
-- 通用分页层用 `pool.query` 而不是 `pool.execute`：MySQL 的预处理协议不接受 `LIMIT ?` 绑定参数
-  （会报 `Incorrect arguments to mysqld_stmt_execute`），所以分页值走占位符、
-  `LIMIT/OFFSET` 用 `Number()` 归一化后拼接，排序字段只接受注册表里的白名单列名。
+- 通用分页层校验并限制页码与每页数量，过滤值使用参数绑定，排序字段只接受注册表里的白名单列名。
 - 所有 `ORDER BY` 都会追加主键作为最后的排序键，否则翻页时同值行顺序不稳定，会出现漏行重行。
 
 ## 智能体
@@ -262,19 +268,18 @@ GET /api/admin/:resource?page=1&pageSize=20&keyword=&sortBy=&sortOrder=desc&<筛
 
 ## 数据库备份与恢复
 
-使用 MySQL 一致性快照导出 InnoDB 表，数据经 gzip 和 AES-256-GCM 加密。请在本机 `.env` 设置独立 `DB_BACKUP_ENCRYPTION_KEY`（32 字节，即 64 位十六进制），并在密码管理器另存一份；密钥丢失后无法解密备份。快照包含平台标识，不能用于其他项目。默认输出在 `backups/`，不会覆盖已有文件。
+使用 `pg_dump --format=custom` 创建 PostgreSQL 归档，再用 AES-256-GCM 加密。请在本机 `.env` 设置独立 `DB_BACKUP_ENCRYPTION_KEY`（32 字节，即 64 位十六进制），并在密码管理器另存一份；密钥丢失后无法解密备份。快照包含项目标识，不能用于其他项目。默认输出在 `backups/`，不会覆盖已有文件。
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"  # 将输出写入 .env
 npm run db:backup
 ```
 
-恢复只允许 `DB_NAME` 以 `_test` 结尾，必须明确使用 `--replace`，且目标库 schema 必须与快照完全匹配。工具会拒绝非 InnoDB 表、无主键表以及包含触发器/存储过程/事件的库，以免产生不完整快照。
+恢复需要填写源 `PGDATABASE`，并指定与源库不同、以 `_test` 结尾的现有目标数据库；必须明确使用 `--replace`。工具先完成 AES-GCM 验证，再以 `pg_restore --single-transaction` 恢复，不兼容旧 `.seabak` MySQL 快照。
 
 ```powershell
-$env:DB_NAME = 'student_platform_restore_test'
-npm run db:init
-npm run db:restore -- --source .\backups\snapshot.seabak --replace
+$env:PGDATABASE = 'international_student_platform'
+npm run db:restore -- --source .\backups\snapshot.seapg --target international_student_platform_restore_test --replace
 ```
 
 ## 核心接口

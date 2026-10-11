@@ -456,7 +456,7 @@ const resources = {
     selectColumns: `v.id, v.student_id, s.student_no, s.chinese_name, s.english_name,
       v.visa_type, v.visa_no, v.issue_date, v.expiry_date, v.residence_permit_no,
       v.document_url, v.status,
-      DATEDIFF(v.expiry_date, CURDATE()) AS days_to_expiry`,
+      (v.expiry_date - CURRENT_DATE) AS days_to_expiry`,
     baseFrom: 'FROM visas v LEFT JOIN students s ON s.id = v.student_id',
     countColumn: 'v.id',
     searchable: ['s.student_no', 's.chinese_name', 's.english_name', 'v.visa_no', 'v.residence_permit_no'],
