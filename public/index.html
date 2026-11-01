@@ -21,11 +21,13 @@
         <h1 data-i18n="systemName">面向国际留学生的信息管理系统</h1>
       </div>
       <div class="toolbar">
+        <a class="ghost-button button-link" id="imagegenLink" href="#" target="_blank" rel="noopener noreferrer">AI 绘画</a>
         <button class="icon-button" id="langToggle" title="Language">中 / EN</button>
         <a class="ghost-button button-link hidden" id="adminLink" href="/admin.html" data-i18n="adminConsole">管理台</a>
         <button class="ghost-button hidden" id="logoutBtn" data-i18n="logout">退出</button>
       </div>
     </header>
+    <script>document.querySelector('#imagegenLink').href = `http://${location.hostname}:4050/`;</script>
 
     <main class="layout">
       <!-- ------------------------------------------------------- 未登录 -->
